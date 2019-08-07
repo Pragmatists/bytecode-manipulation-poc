@@ -1,4 +1,4 @@
-package testtypes;
+package test.types;
 
 public class Target implements Clazz {
     @Override

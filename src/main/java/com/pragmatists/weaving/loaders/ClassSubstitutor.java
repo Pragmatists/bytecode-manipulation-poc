@@ -1,8 +1,8 @@
 package com.pragmatists.weaving.loaders;
 
-import com.pragmatists.weaving.loaders.exceptions.NoBytecodeProvidedException;
-
+import javax.lang.model.SourceVersion;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ClassSubstitutor extends ClassLoader {
@@ -11,18 +11,29 @@ public class ClassSubstitutor extends ClassLoader {
     private final ClassLoader fallBackClassloader;
 
     public ClassSubstitutor(Map<String, byte[]> classesToTargetBytecode) {
-        this.classesToTargetBytecode = classesToTargetBytecode;
-        this.fallBackClassloader = getClass().getClassLoader();
+        super(ClassSubstitutor.class.getClassLoader());
+        this.classesToTargetBytecode = Map.copyOf(classesToTargetBytecode);
+        validate(classesToTargetBytecode.keySet());
+        this.fallBackClassloader = getParent();
+    }
+
+    private void validate(Set<String> classNames) {
+        classNames.forEach(name -> {
+            if (!SourceVersion.isName(name)) { // TODO this doesn't do the trick, but provides some validation...
+                throw new IllegalArgumentException(String.format("'%s' is an invalid class name.", name));
+            }
+        });
     }
 
     public ClassSubstitutor(Map<String, byte[]> classesToTargetBytecode, ClassLoader fallBackClassloader) {
+        super(fallBackClassloader);
         this.classesToTargetBytecode = classesToTargetBytecode;
         this.fallBackClassloader = fallBackClassloader;
     }
 
     @Override
     public Class<?> loadClass(String name) throws ClassNotFoundException {
-        // TODO synchronization
+        // TODO synchronization or leave non-parallel-capable?
         if (classesToTargetBytecode.containsKey(name)) {
             return loadedClasses.computeIfAbsent(name, this::substituteClass);
         }
@@ -32,10 +43,6 @@ public class ClassSubstitutor extends ClassLoader {
 
     private Class<?> substituteClass(String name) {
         byte[] targetByteCode = classesToTargetBytecode.get(name);
-        if (targetByteCode != null) {
-            return defineClass(name, targetByteCode, 0, targetByteCode.length);
-        } else {
-            throw new NoBytecodeProvidedException(name);
-        }
+        return defineClass(name, targetByteCode, 0, targetByteCode.length);
     }
 }

@@ -1,4 +1,4 @@
-package testtypes;
+package test.types;
 
 public interface Clazz {
     String getClassId();

@@ -1,23 +1,31 @@
 package com.pragmatists.weaving.bytecode.injection;
 
+import com.pragmatists.weaving.bytecode.Instructions;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 
-import java.util.List;
-import java.util.function.Consumer;
+import java.util.Objects;
+import java.util.function.BiFunction;
 
-import static org.objectweb.asm.Opcodes.ASM7;
+import static com.pragmatists.weaving.config.Config.ASM_VERSION;
 
 public class MethodBytecodeInjector extends ClassVisitor {
     private final String methodName;
-    private final List<Consumer<MethodVisitor>> operations;
+    private final Instructions instructions;
     private final ClassVisitor classVisitor;
+    private final BiFunction<MethodVisitor, Instructions, MethodVisitor> methodVisitorProvider;
 
-    public MethodBytecodeInjector(String methodName, List<Consumer<MethodVisitor>> operations, ClassVisitor classVisitor) {
-        super(ASM7, classVisitor);
+    public MethodBytecodeInjector(String methodName,
+                                  Instructions instructions,
+                                  ClassVisitor classVisitor,
+                                  BiFunction<MethodVisitor, Instructions, MethodVisitor> methodVisitorProvider) {
+        super(ASM_VERSION, classVisitor);
+
+        Objects.requireNonNull(methodName, "Method name cannot be null");
         this.methodName = methodName;
-        this.operations = operations;
+        this.instructions = instructions;
         this.classVisitor = classVisitor;
+        this.methodVisitorProvider = methodVisitorProvider;
     }
 
     @Override
@@ -27,7 +35,7 @@ public class MethodBytecodeInjector extends ClassVisitor {
             return methodVisitor;
         }
 
-        return new InjectingMethodVisitor(methodVisitor, operations);
+        return methodVisitorProvider.apply(methodVisitor, instructions);
     }
 
 }

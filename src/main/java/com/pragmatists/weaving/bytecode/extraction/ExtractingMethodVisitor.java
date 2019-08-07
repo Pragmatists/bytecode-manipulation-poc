@@ -1,31 +1,43 @@
 package com.pragmatists.weaving.bytecode.extraction;
 
-import org.objectweb.asm.*;
+import com.pragmatists.weaving.bytecode.Instructions;
+import org.objectweb.asm.Handle;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Type;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
+import static com.pragmatists.weaving.config.Config.ASM_VERSION;
+import static com.pragmatists.weaving.utils.Types.correspondingReturnBytecode;
 
-import static org.objectweb.asm.Opcodes.ARETURN;
-import static org.objectweb.asm.Opcodes.RETURN;
+class ExtractingMethodVisitor extends MethodVisitor {
+    private final Instructions instructions = new Instructions();
+    private final int returnOpcode;
 
-public class ExtractingMethodVisitor extends MethodVisitor {
-    private List<Consumer<MethodVisitor>> operations = new ArrayList<>();
     private boolean pastReturn = false;
-    
-    public ExtractingMethodVisitor(int api) {
-        super(api);
+
+    private ExtractingMethodVisitor(int returnOpcode) {
+        super(ASM_VERSION);
+        this.returnOpcode = returnOpcode;
+    }
+
+    static ExtractingMethodVisitor forDescriptor(String descriptor) {
+        Type returnType = Type.getReturnType(descriptor);
+        int returnOpcode = correspondingReturnBytecode(returnType);
+        return new ExtractingMethodVisitor(returnOpcode);
+    }
+
+    Instructions getInstructions() {
+        return instructions;
     }
 
     @Override
     public void visitInsn(int opcode) {
-        pastReturn = opcode == RETURN || opcode == ARETURN;
+        pastReturn = opcode == returnOpcode;
         if (pastReturn) {
             return;
         }
 
-        operations.add(mv -> mv.visitInsn(opcode));
-
+        instructions.collectInstruction(mv -> mv.visitInsn(opcode));
     }
 
     @Override
@@ -34,7 +46,7 @@ public class ExtractingMethodVisitor extends MethodVisitor {
             return;
         }
 
-        operations.add(mv -> mv.visitIntInsn(opcode, operand));
+        instructions.collectInstruction(mv -> mv.visitIntInsn(opcode, operand));
     }
 
     @Override
@@ -43,7 +55,7 @@ public class ExtractingMethodVisitor extends MethodVisitor {
             return;
         }
 
-        operations.add(mv -> mv.visitVarInsn(opcode, var));
+        instructions.collectInstruction(mv -> mv.visitVarInsn(opcode, var));
     }
 
     @Override
@@ -52,7 +64,7 @@ public class ExtractingMethodVisitor extends MethodVisitor {
             return;
         }
 
-        operations.add(mv -> mv.visitTypeInsn(opcode, type));
+        instructions.collectInstruction(mv -> mv.visitTypeInsn(opcode, type));
     }
 
     @Override
@@ -61,21 +73,22 @@ public class ExtractingMethodVisitor extends MethodVisitor {
             return;
         }
 
-        operations.add(mv -> mv.visitFieldInsn(opcode, owner, name, descriptor));
+        instructions.collectInstruction(mv -> mv.visitFieldInsn(opcode, owner, name, descriptor));
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void visitMethodInsn(int opcode, String owner, String name, String descriptor) {
         if (pastReturn) {
             return;
         }
 
-        operations.add(mv -> mv.visitMethodInsn(opcode, owner, name, descriptor));
+        instructions.collectInstruction(mv -> mv.visitMethodInsn(opcode, owner, name, descriptor));
     }
 
     @Override
     public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
-        operations.add(mv -> mv.visitMethodInsn(opcode, owner, name, descriptor, isInterface));
+        instructions.collectInstruction(mv -> mv.visitMethodInsn(opcode, owner, name, descriptor, isInterface));
     }
 
     @Override
@@ -84,7 +97,7 @@ public class ExtractingMethodVisitor extends MethodVisitor {
             return;
         }
 
-        operations.add(mv -> mv.visitInvokeDynamicInsn(name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments));
+        instructions.collectInstruction(mv -> mv.visitInvokeDynamicInsn(name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments));
     }
 
     @Override
@@ -93,7 +106,7 @@ public class ExtractingMethodVisitor extends MethodVisitor {
             return;
         }
 
-        operations.add(mv -> mv.visitJumpInsn(opcode, label));
+        instructions.collectInstruction(mv -> mv.visitJumpInsn(opcode, label));
     }
 
     @Override
@@ -102,7 +115,7 @@ public class ExtractingMethodVisitor extends MethodVisitor {
             return;
         }
 
-        operations.add(mv -> mv.visitLabel(label));
+        instructions.collectInstruction(mv -> mv.visitLabel(label));
     }
 
     @Override
@@ -111,7 +124,7 @@ public class ExtractingMethodVisitor extends MethodVisitor {
             return;
         }
 
-        operations.add(mv -> mv.visitLdcInsn(value));
+        instructions.collectInstruction(mv -> mv.visitLdcInsn(value));
     }
 
     @Override
@@ -120,7 +133,7 @@ public class ExtractingMethodVisitor extends MethodVisitor {
             return;
         }
 
-        operations.add(mv -> mv.visitIincInsn(var, increment));
+        instructions.collectInstruction(mv -> mv.visitIincInsn(var, increment));
     }
 
     @Override
@@ -129,7 +142,7 @@ public class ExtractingMethodVisitor extends MethodVisitor {
             return;
         }
 
-        operations.add(mv -> mv.visitTableSwitchInsn(min, max, dflt, labels));
+        instructions.collectInstruction(mv -> mv.visitTableSwitchInsn(min, max, dflt, labels));
     }
 
     @Override
@@ -138,7 +151,7 @@ public class ExtractingMethodVisitor extends MethodVisitor {
             return;
         }
 
-        operations.add(mv -> mv.visitLookupSwitchInsn(dflt, keys, labels));
+        instructions.collectInstruction(mv -> mv.visitLookupSwitchInsn(dflt, keys, labels));
     }
 
     @Override
@@ -147,7 +160,7 @@ public class ExtractingMethodVisitor extends MethodVisitor {
             return;
         }
 
-        operations.add(mv -> mv.visitMultiANewArrayInsn(descriptor, numDimensions));
+        instructions.collectInstruction(mv -> mv.visitMultiANewArrayInsn(descriptor, numDimensions));
     }
 
     @Override
@@ -156,7 +169,7 @@ public class ExtractingMethodVisitor extends MethodVisitor {
             return;
         }
 
-        operations.add(mv -> mv.visitTryCatchBlock(start, end, handler, type));
+        instructions.collectInstruction(mv -> mv.visitTryCatchBlock(start, end, handler, type));
     }
 
     @Override
@@ -165,7 +178,7 @@ public class ExtractingMethodVisitor extends MethodVisitor {
             return;
         }
 
-        operations.add(mv -> mv.visitLocalVariable(name, descriptor, signature, start, end, index));
+        instructions.collectInstruction(mv -> mv.visitLocalVariable(name, descriptor, signature, start, end, index));
     }
 
     @Override
@@ -174,7 +187,7 @@ public class ExtractingMethodVisitor extends MethodVisitor {
             return;
         }
 
-        operations.add(mv -> mv.visitLineNumber(line, start));
+        instructions.collectInstruction(mv -> mv.visitLineNumber(line, start));
     }
 
     @Override
@@ -183,15 +196,11 @@ public class ExtractingMethodVisitor extends MethodVisitor {
             return;
         }
 
-        operations.add(mv -> mv.visitMaxs(maxStack, maxLocals));
+        instructions.collectInstruction(mv -> mv.visitMaxs(maxStack, maxLocals));
     }
 
     @Override
     public void visitEnd() {
         super.visitEnd();
-    }
-
-    public List<Consumer<MethodVisitor>> getOperations() {
-        return operations;
     }
 }

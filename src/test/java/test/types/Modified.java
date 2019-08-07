@@ -1,4 +1,4 @@
-package testtypes;
+package test.types;
 
 public class Modified {
     public void foo() {
