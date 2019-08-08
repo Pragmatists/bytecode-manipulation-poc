@@ -17,18 +17,19 @@ public class Utils {
     public static Class<?> loadModifiedClass(String methodName,
                                              String descriptor,
                                              Instructions instructions,
+                                             Class c,
                                              byte[] originalBytecode,
                                              BiFunction<MethodVisitor, Instructions, MethodVisitor> methodVisitorProvider)
             throws ClassNotFoundException {
         var modifiedBytecode = modifyBytecode(methodName, descriptor, originalBytecode, instructions, methodVisitorProvider);
 
-        var classSubstitutor = new ClassSubstitutor(Map.of(Calculator.class.getName(), modifiedBytecode));
-        return classSubstitutor.loadClass(Calculator.class.getName());
+        var classSubstitutor = new ClassSubstitutor(Map.of(c.getName(), modifiedBytecode));
+        return classSubstitutor.loadClass(c.getName());
     }
 
     public static byte[] getBytecode(Class c) {
         try {
-            return Calculator.class.getResourceAsStream(c.getSimpleName() + CLASS_FILE_EXTENSION).readAllBytes();
+            return c.getResourceAsStream(c.getSimpleName() + CLASS_FILE_EXTENSION).readAllBytes();
         } catch (IOException e) {
             throw new FailedExampleException(e);
         }

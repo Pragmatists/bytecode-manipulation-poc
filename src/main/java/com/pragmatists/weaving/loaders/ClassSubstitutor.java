@@ -17,18 +17,11 @@ public class ClassSubstitutor extends ClassLoader {
         this.fallBackClassloader = getParent();
     }
 
-    private void validate(Set<String> classNames) {
-        classNames.forEach(name -> {
-            if (!SourceVersion.isName(name)) { // TODO this doesn't FULLY do the trick, but provides some validation...
-                throw new IllegalArgumentException(String.format("'%s' is an invalid class name.", name));
-            }
-        });
-    }
-
-    public ClassSubstitutor(Map<String, byte[]> classesToTargetBytecode, ClassLoader fallBackClassloader) {
-        super(fallBackClassloader);
-        this.classesToTargetBytecode = classesToTargetBytecode;
-        this.fallBackClassloader = fallBackClassloader;
+    public ClassSubstitutor(Map<String, byte[]> classesToTargetBytecode, ClassLoader fallbackClassloader) {
+        super(ClassSubstitutor.class.getClassLoader());
+        this.classesToTargetBytecode = Map.copyOf(classesToTargetBytecode);
+        validate(classesToTargetBytecode.keySet());
+        this.fallBackClassloader = fallbackClassloader;
     }
 
     @Override
@@ -44,5 +37,13 @@ public class ClassSubstitutor extends ClassLoader {
     private Class<?> substituteClass(String name) {
         byte[] targetByteCode = classesToTargetBytecode.get(name);
         return defineClass(name, targetByteCode, 0, targetByteCode.length);
+    }
+
+    private void validate(Set<String> classNames) {
+        classNames.forEach(name -> {
+            if (!SourceVersion.isName(name)) { // TODO this doesn't FULLY do the trick, but provides some validation...
+                throw new IllegalArgumentException(String.format("'%s' is an invalid class name.", name));
+            }
+        });
     }
 }
