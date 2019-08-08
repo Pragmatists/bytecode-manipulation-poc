@@ -1,21 +1,22 @@
 package com.pragmatists.weaving.bytecode.generation;
 
 import lombok.Builder;
-import lombok.Value;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
 import org.objectweb.asm.Type;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static com.pragmatists.weaving.bytecode.generation.Identifiers.CONSTRUCTOR_METHOD_NAME;
+import static com.pragmatists.weaving.utils.Types.methodDescriptor;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 
-@Value
-@Builder
+@Getter
+@EqualsAndHashCode
+@ToString
 public class MethodCharacteristic {
-    private static final String DESCRIPTOR_FORMAT = "(%s)%s";
-
     public static final MethodCharacteristic DEFAULT_CONSTRUCTOR_CHARACTERISTIC = MethodCharacteristic.builder()
             .accessFlag(ACC_PUBLIC)
             .name(CONSTRUCTOR_METHOD_NAME.getValue())
@@ -27,24 +28,43 @@ public class MethodCharacteristic {
     private final String name;
     private final List<Class> paramTypes;
     private final Class returnType;
-    private final String signature = null; // unsupported
-    private final String[] exceptions = new String[]{}; // unsupported
+    private final Type returnType_;
+    private final String signature = null; // unsupported yet
+    private final String[] exceptions = new String[0]; // unsupported yet
+    private final String descriptor;
 
-    public MethodCharacteristic(int accessFlag, String name, List<Class> paramTypes, Class returnType) {
+    public MethodCharacteristic withName(String newMethodName) {
+        return this.toBuilder().name(newMethodName).build();
+    }
+
+    @Builder(toBuilder = true)
+    private MethodCharacteristic(int accessFlag, String name, List<Class> paramTypes, Class returnType, String descriptor) {
         this.accessFlag = accessFlag;
         this.name = name;
         this.paramTypes = paramTypes;
         this.returnType = returnType;
+
+        // TODO this is not ideal, given the default builder:
+        //  it should be EITHER call `builder().returnType(...).paramTypes(...)` OR `builder().descriptor(...)`
+        if (descriptor == null) {
+            this.descriptor = methodDescriptor(returnType, paramTypes.toArray(new Class[paramTypes.size()]));
+            this.returnType_ = classToType(returnType);
+        } else {
+            this.descriptor = descriptor;
+            this.returnType_ = Type.getReturnType(descriptor);
+        }
     }
 
-    public String getDescriptor() {
-        String paramTypeDescriptors = paramTypes.stream()
-                .map(Type::getDescriptor)
-                .collect(Collectors.joining());
+    public Type getReturnType() {
+        return returnType_;
+    }
 
-        String returnTypeDescriptor = returnType == null ? Type.VOID_TYPE.getDescriptor() : Type.getDescriptor(returnType);
+    private Type classToType(Class c) {
+        if (c == null) {
+            return Type.VOID_TYPE;
+        }
 
-        return String.format(DESCRIPTOR_FORMAT, paramTypeDescriptors, returnTypeDescriptor);
+        return Type.getType(c);
     }
 }
 

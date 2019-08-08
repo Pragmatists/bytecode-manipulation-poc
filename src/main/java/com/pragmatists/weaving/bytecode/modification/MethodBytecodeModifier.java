@@ -1,25 +1,24 @@
-package com.pragmatists.weaving.bytecode.injection;
+package com.pragmatists.weaving.bytecode.modification;
 
 import com.pragmatists.weaving.bytecode.Instructions;
+import com.pragmatists.weaving.config.Config;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 
 import java.util.Objects;
 import java.util.function.BiFunction;
 
-import static com.pragmatists.weaving.config.Config.ASM_VERSION;
-
-public class MethodBytecodeInjector extends ClassVisitor {
+public class MethodBytecodeModifier extends ClassVisitor {
     private final String methodName;
     private final Instructions instructions;
     private final ClassVisitor classVisitor;
     private final BiFunction<MethodVisitor, Instructions, MethodVisitor> methodVisitorProvider;
 
-    public MethodBytecodeInjector(String methodName,
+    public MethodBytecodeModifier(String methodName,
                                   Instructions instructions,
                                   ClassVisitor classVisitor,
                                   BiFunction<MethodVisitor, Instructions, MethodVisitor> methodVisitorProvider) {
-        super(ASM_VERSION, classVisitor);
+        super(Config.ASM_VERSION, classVisitor);
 
         Objects.requireNonNull(methodName, "Method name cannot be null");
         this.methodName = methodName;

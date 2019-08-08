@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.pragmatists.weaving.bytecode.generation.MethodGenerator.DEFAULT_CONSTRUCTOR_OF_OBJECT_SUBCLASS;
-import static com.pragmatists.weaving.utils.ClassNames.binaryToInternal;
+import static com.pragmatists.weaving.utils.Types.internalName;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.V11;
@@ -53,7 +53,7 @@ class ClassSubstitutorTest {
     @Test
     void shouldValidateClassNames() {
         final String invalidClassName = "1.x.y.Z";
-        Map<String, byte[]> classesToBytecode = Map.of(invalidClassName, new byte[]{});
+        Map<String, byte[]> classesToBytecode = Map.of(invalidClassName, new byte[0]);
         assertThrows(IllegalArgumentException.class, () -> new ClassSubstitutor(classesToBytecode),
                 String.format("'%s' is an invalid class name.", invalidClassName));
     }
@@ -66,9 +66,8 @@ class ClassSubstitutorTest {
         ClassSubstitutor classSubstitutor = new ClassSubstitutor(classesToBytecode);
         Class<?> substitutedClass = classSubstitutor.loadClass(className);
 
-        Object o = substitutedClass.getConstructors()[0].newInstance();
+        Object o = getInstance(substitutedClass);
         Method print = substitutedClass.getMethod("print");
-
         PrintCaptor printCaptor = new PrintCaptor();
         System.setOut(printCaptor);
         print.invoke(o);
@@ -78,15 +77,20 @@ class ClassSubstitutorTest {
         assertEquals(HELLO_WORLD, results.get(0));
     }
 
+    private Object getInstance(Class<?> substitutedClass)
+            throws InstantiationException, IllegalAccessException, InvocationTargetException {
+        return substitutedClass.getConstructors()[0].newInstance();
+    }
+
     private byte[] generateClassLikeTarget() {
         ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
 
         ClassCharacteristic classCharacteristic = ClassCharacteristic.builder()
                 .javaVersion(V11)
                 .accessFlag(ACC_PUBLIC)
-                .name(binaryToInternal(Target.class.getName()))
-                .superName(binaryToInternal(Object.class.getName()))
-                .interfaces(new String[]{binaryToInternal(Clazz.class.getName())})
+                .name(internalName(Target.class))
+                .superName(internalName(Object.class))
+                .interfaces(new String[]{internalName(Clazz.class)})
                 .build();
 
         MethodCharacteristic methodCharacteristic1 = MethodCharacteristic.builder()
@@ -97,7 +101,7 @@ class ClassSubstitutorTest {
                 .build();
         MethodGenerator method1 = MethodGenerator.builder()
                 .characteristic(methodCharacteristic1)
-                .methodBody(mv -> mv.visitLdcInsn("target")).build();
+                .methodBodyWriter(mv -> mv.visitLdcInsn("target")).build();
 
         MethodCharacteristic methodCharacteristic2 = MethodCharacteristic.builder()
                 .accessFlag(ACC_PUBLIC)
@@ -107,7 +111,7 @@ class ClassSubstitutorTest {
                 .build();
         MethodGenerator method2 = MethodGenerator.builder()
                 .characteristic(methodCharacteristic2)
-                .methodBody(mv -> mv.visitLdcInsn("target2"))
+                .methodBodyWriter(mv -> mv.visitLdcInsn("target2"))
                 .build();
 
         return ClassBytecodeGenerator.builder()
@@ -123,9 +127,9 @@ class ClassSubstitutorTest {
         ClassCharacteristic classCharacteristic = ClassCharacteristic.builder()
                 .javaVersion(V11)
                 .accessFlag(ACC_PUBLIC)
-                .name(binaryToInternal(className))
-                .superName(binaryToInternal(Object.class.getName()))
-                .interfaces(new String[]{})
+                .name(className)
+                .superName(Object.class.getName())
+                .interfaces(new String[0])
                 .build();
 
         MethodCharacteristic printMethodCharacteristic = MethodCharacteristic.builder()
@@ -136,7 +140,7 @@ class ClassSubstitutorTest {
                 .build();
         MethodGenerator print = MethodGenerator.builder()
                 .characteristic(printMethodCharacteristic)
-                .methodBody(mv -> MethodGenerator.soutBytecode(mv, HELLO_WORLD))
+                .methodBodyWriter(mv -> MethodGenerator.soutBytecode(mv, HELLO_WORLD))
                 .build();
 
         return ClassBytecodeGenerator.builder()

@@ -2,9 +2,14 @@ package com.pragmatists.weaving.utils;
 
 import org.objectweb.asm.Type;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 import static org.objectweb.asm.Opcodes.*;
 
 public class Types {
+    private static final String DESCRIPTOR_FORMAT = "(%s)%s";
+
     public static int correspondingReturnBytecode(Type returnType) {
         int sort = returnType.getSort();
         switch (sort) {
@@ -12,7 +17,7 @@ public class Types {
                 return RETURN;
 
             case Type.BOOLEAN:
-                return IRETURN;
+                return IRETURN; // keep the multiple branches in switch to see test coverage for all cases
             case Type.CHAR:
                 return IRETURN;
             case Type.BYTE:
@@ -32,7 +37,7 @@ public class Types {
                 return DRETURN;
 
             case Type.ARRAY:
-                return ARETURN;
+                return ARETURN; // see above
             case Type.OBJECT:
                 return ARETURN;
 
@@ -42,11 +47,21 @@ public class Types {
         }
     }
 
-    public static int correspondingReturnBytecode(Class c) {
-        if (c == null) {
-            return RETURN;
-        }
+    public static String internalName(Class c) {
+        return binaryToInternal(c.getName());
+    }
 
-        return correspondingReturnBytecode(Type.getType(c));
+    public static String binaryToInternal(String name) {
+        return name.replace('.', '/');
+    }
+
+    public static String methodDescriptor(Class returnType, Class... paramTypes) {
+        String paramTypeDescriptors = Arrays.stream(paramTypes)
+                .map(Type::getDescriptor)
+                .collect(Collectors.joining());
+
+        String returnTypeDescriptor = returnType == null ? Type.VOID_TYPE.getDescriptor() : Type.getDescriptor(returnType);
+
+        return String.format(DESCRIPTOR_FORMAT, paramTypeDescriptors, returnTypeDescriptor);
     }
 }

@@ -1,4 +1,4 @@
-package com.pragmatists.weaving.bytecode.injection;
+package com.pragmatists.weaving.bytecode.modification;
 
 import com.pragmatists.weaving.bytecode.Instructions;
 import org.objectweb.asm.MethodVisitor;

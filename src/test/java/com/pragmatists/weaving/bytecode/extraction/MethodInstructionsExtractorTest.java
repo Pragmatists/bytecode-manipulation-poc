@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static com.pragmatists.weaving.bytecode.generation.MethodGenerator.DEFAULT_CONSTRUCTOR_OF_OBJECT_SUBCLASS;
-import static com.pragmatists.weaving.utils.ClassNames.binaryToInternal;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
@@ -41,7 +40,8 @@ class MethodInstructionsExtractorTest {
     private static final int ACCESS_FLAG = 0;
     private static final String TEST_METHOD_NAME = "testMethod";
     private static final String SOME_OTHER_METHOD_NAME = "someOtherMethod";
-    private static final String DESCRIPTOR = "descriptor";
+    private static final String DESCRIPTOR = "()V";
+    private static final String SOME_OTHER_DESCRIPTOR = "()Ljava/lang/String;";
     private static final String[] EXCEPTIONS = {};
     private static final byte[] TEST_BYTES = new byte[]{0, 1, 2};
     private static final String GENERATED_CLASS_NAME = "GeneratedClass";
@@ -54,33 +54,30 @@ class MethodInstructionsExtractorTest {
     ClassReader classReader;
 
     @Mock
-    Function<String, ExtractingMethodVisitor> extractingMethodVisitorProvider;
+    Function<MethodCharacteristic, ExtractingMethodVisitor> extractingMethodVisitorProvider;
 
     @Mock
     ExtractingMethodVisitor extractingMethodVisitor;
 
-    @Mock
-    Instructions instructions;
-
     @BeforeAll
     static void setUp() throws IOException {
-        InputStream is1 = MethodInstructionsExtractorTest.class.getClassLoader().getResourceAsStream("Target.class");
-        sourceClassBytecode = is1.readAllBytes();
+        InputStream is = MethodInstructionsExtractorTest.class.getClassLoader().getResourceAsStream("Target.class");
+        sourceClassBytecode = is.readAllBytes();
     }
 
     @BeforeEach
     void setUpForEach() {
         MockitoAnnotations.initMocks(this);
         when(classReaderProvider.apply(TEST_BYTES)).thenReturn(classReader);
-        when(extractingMethodVisitorProvider.apply(DESCRIPTOR)).thenReturn(extractingMethodVisitor);
+        when(extractingMethodVisitorProvider.apply(getTestCharacteristic())).thenReturn(extractingMethodVisitor);
     }
 
     @Test
-    void shouldReturnExtractingMethodVisitorWhenMethodNameMatches() {
+    void shouldReturnExtractingMethodVisitorWhenMethodNameAndDescriptorMatch() {
         MethodInstructionsExtractor methodInstructionsExtractor =
-                new MethodInstructionsExtractor(TEST_METHOD_NAME, classReaderProvider, extractingMethodVisitorProvider);
+                new MethodInstructionsExtractor(TEST_METHOD_NAME, null, classReaderProvider, extractingMethodVisitorProvider);
 
-        final MethodVisitor result = methodInstructionsExtractor.visitMethod(ACCESS_FLAG, TEST_METHOD_NAME, DESCRIPTOR, null, EXCEPTIONS);
+        MethodVisitor result = methodInstructionsExtractor.visitMethod(ACCESS_FLAG, TEST_METHOD_NAME, DESCRIPTOR, null, EXCEPTIONS);
 
         assertEquals(extractingMethodVisitor, result);
     }
@@ -90,16 +87,26 @@ class MethodInstructionsExtractorTest {
         MethodInstructionsExtractor methodInstructionsExtractor =
                 new MethodInstructionsExtractor(TEST_METHOD_NAME, classReaderProvider, extractingMethodVisitorProvider);
 
-        final MethodVisitor result = methodInstructionsExtractor.visitMethod(ACCESS_FLAG, SOME_OTHER_METHOD_NAME, DESCRIPTOR, null, EXCEPTIONS);
+        MethodVisitor result = methodInstructionsExtractor.visitMethod(ACCESS_FLAG, SOME_OTHER_METHOD_NAME, DESCRIPTOR, null, EXCEPTIONS);
 
         assertEquals(methodInstructionsExtractor.visitMethod(ACCESS_FLAG, SOME_OTHER_METHOD_NAME, DESCRIPTOR, null, EXCEPTIONS), result);
+    }
+
+    @Test
+    void shouldReturnDefaultMethodVisitorWhenDescriptorDoesNotMatch() {
+        MethodInstructionsExtractor methodInstructionsExtractor =
+                new MethodInstructionsExtractor(TEST_METHOD_NAME, classReaderProvider, extractingMethodVisitorProvider);
+
+        MethodVisitor result = methodInstructionsExtractor.visitMethod(ACCESS_FLAG, TEST_METHOD_NAME, SOME_OTHER_DESCRIPTOR, null, EXCEPTIONS);
+
+        assertEquals(methodInstructionsExtractor.visitMethod(ACCESS_FLAG, SOME_OTHER_METHOD_NAME, SOME_OTHER_DESCRIPTOR, null, EXCEPTIONS), result);
     }
 
     @Test
     void shouldCollectOperationsIT() {
         MethodInstructionsExtractor methodInstructionsExtractor = new MethodInstructionsExtractor("getClassId");
 
-        Instructions instructions = methodInstructionsExtractor.extract(sourceClassBytecode);
+        Instructions instructions = methodInstructionsExtractor.extract(sourceClassBytecode).get();
 
         MethodVisitor methodVisitor = mock(MethodVisitor.class);
         instructions.appendMethodInstructions(methodVisitor);
@@ -111,7 +118,7 @@ class MethodInstructionsExtractorTest {
         verify(methodVisitor).visitLdcInsn("target");
         verifyNoMoreInteractions(methodVisitor);
 
-        final List<Label> labels = labelsCaptor.getAllValues();
+        List<Label> labels = labelsCaptor.getAllValues();
         assertEquals(labels.get(0), labels.get(1));
     }
 
@@ -120,7 +127,7 @@ class MethodInstructionsExtractorTest {
             throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
         MethodInstructionsExtractor methodInstructionsExtractor = new MethodInstructionsExtractor("getClassId");
 
-        Instructions instructions = methodInstructionsExtractor.extract(sourceClassBytecode);
+        Instructions instructions = methodInstructionsExtractor.extract(sourceClassBytecode).get();
         byte[] classBytecode = createClass(instructions, GENERATED_METHOD_NAME, GENERATED_CLASS_NAME);
 
         Class<?> generatedClass = loadClass(classBytecode);
@@ -132,8 +139,16 @@ class MethodInstructionsExtractorTest {
 
         // This is value returned by test.types.Target::getClassId from the class file in the resources.
         // To avoid mistakes the source for test.types.Target::getClassId has a different value returned.
-        final String expected = "target";
+        String expected = "target";
         assertEquals(expected, invoke);
+    }
+
+    private MethodCharacteristic getTestCharacteristic() {
+        return MethodCharacteristic.builder()
+                .accessFlag(ACCESS_FLAG)
+                .name(TEST_METHOD_NAME)
+                .descriptor(DESCRIPTOR)
+                .build();
     }
 
     private Class<?> loadClass(byte[] classBytecode) throws ClassNotFoundException {
@@ -146,9 +161,9 @@ class MethodInstructionsExtractorTest {
         final ClassCharacteristic characteristic = ClassCharacteristic.builder()
                 .javaVersion(V11)
                 .accessFlag(ACC_PUBLIC)
-                .name(binaryToInternal(className))
-                .superName(binaryToInternal(Object.class.getName()))
-                .interfaces(new String[]{})
+                .name(className)
+                .superName(Object.class.getName())
+                .interfaces(new String[0])
                 .build();
 
         MethodCharacteristic methodCharacteristic = MethodCharacteristic.builder()
@@ -159,14 +174,12 @@ class MethodInstructionsExtractorTest {
                 .build();
         final MethodGenerator methodFromInstructions = MethodGenerator.builder()
                 .characteristic(methodCharacteristic)
-                // TODO Instructions to hold MethodCharacteristic, MethodGenerator created directly from Instructions.
-                .methodBody(instructions::appendMethodInstructions)
+                .methodBodyWriter(instructions::appendMethodInstructions)
                 .build();
 
         ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
         return ClassBytecodeGenerator.builder()
                 .characteristic(characteristic)
-                // TODO make this accept varargs
                 .methodGenerators(Arrays.asList(DEFAULT_CONSTRUCTOR_OF_OBJECT_SUBCLASS, methodFromInstructions))
                 .build()
                 .generate(classWriter);

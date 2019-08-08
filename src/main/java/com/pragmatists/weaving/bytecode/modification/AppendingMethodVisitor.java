@@ -1,16 +1,18 @@
-package com.pragmatists.weaving.bytecode.injection;
+package com.pragmatists.weaving.bytecode.modification;
 
 import com.pragmatists.weaving.bytecode.Instructions;
+import com.pragmatists.weaving.config.Config;
 import org.objectweb.asm.MethodVisitor;
 
-import static org.objectweb.asm.Opcodes.*;
+import static org.objectweb.asm.Opcodes.IRETURN;
+import static org.objectweb.asm.Opcodes.RETURN;
 
 public class AppendingMethodVisitor extends MethodVisitor {
     private final MethodVisitor originalMethodVisitor;
     private final Instructions instructions;
 
     public AppendingMethodVisitor(MethodVisitor mv, Instructions instructions) {
-        super(ASM7, mv);
+        super(Config.ASM_VERSION, mv);
         this.originalMethodVisitor = mv;
         this.instructions = instructions;
     }

@@ -3,7 +3,7 @@ package com.pragmatists.weaving.bytecode.generation;
 import lombok.Builder;
 import lombok.Value;
 
-import static com.pragmatists.weaving.utils.ClassNames.binaryToInternal;
+import static com.pragmatists.weaving.utils.Types.binaryToInternal;
 
 @Value
 @Builder
@@ -15,11 +15,11 @@ public class ClassCharacteristic {
     private final String superName;
     private final String[] interfaces;
 
-    public String getName() {
+    public String getInternalName() {
         return binaryToInternal(name);
     }
 
-    public String getSuperName() {
+    public String getSuperInternalName() {
         return binaryToInternal(superName);
     }
 }

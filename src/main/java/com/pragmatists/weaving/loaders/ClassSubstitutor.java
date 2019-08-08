@@ -19,7 +19,7 @@ public class ClassSubstitutor extends ClassLoader {
 
     private void validate(Set<String> classNames) {
         classNames.forEach(name -> {
-            if (!SourceVersion.isName(name)) { // TODO this doesn't do the trick, but provides some validation...
+            if (!SourceVersion.isName(name)) { // TODO this doesn't FULLY do the trick, but provides some validation...
                 throw new IllegalArgumentException(String.format("'%s' is an invalid class name.", name));
             }
         });

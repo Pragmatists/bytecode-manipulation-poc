@@ -1,12 +1,13 @@
 package com.pragmatists.weaving.bytecode.extraction;
 
 import com.pragmatists.weaving.bytecode.Instructions;
+import com.pragmatists.weaving.bytecode.generation.MethodCharacteristic;
+import com.pragmatists.weaving.config.Config;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
-import static com.pragmatists.weaving.config.Config.ASM_VERSION;
 import static com.pragmatists.weaving.utils.Types.correspondingReturnBytecode;
 
 class ExtractingMethodVisitor extends MethodVisitor {
@@ -15,15 +16,17 @@ class ExtractingMethodVisitor extends MethodVisitor {
 
     private boolean pastReturn = false;
 
-    private ExtractingMethodVisitor(int returnOpcode) {
-        super(ASM_VERSION);
+    private ExtractingMethodVisitor(MethodCharacteristic methodCharacteristic, int returnOpcode) {
+        super(Config.ASM_VERSION);
         this.returnOpcode = returnOpcode;
+        instructions.setMethodCharacteristic(methodCharacteristic);
     }
 
-    static ExtractingMethodVisitor forDescriptor(String descriptor) {
+    static ExtractingMethodVisitor of(MethodCharacteristic methodCharacteristic) {
+        String descriptor = methodCharacteristic.getDescriptor();
         Type returnType = Type.getReturnType(descriptor);
         int returnOpcode = correspondingReturnBytecode(returnType);
-        return new ExtractingMethodVisitor(returnOpcode);
+        return new ExtractingMethodVisitor(methodCharacteristic, returnOpcode);
     }
 
     Instructions getInstructions() {

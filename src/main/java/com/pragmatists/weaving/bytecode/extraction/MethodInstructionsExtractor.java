@@ -1,31 +1,44 @@
 package com.pragmatists.weaving.bytecode.extraction;
 
 import com.pragmatists.weaving.bytecode.Instructions;
+import com.pragmatists.weaving.bytecode.generation.MethodCharacteristic;
+import com.pragmatists.weaving.config.Config;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
-
-import static com.pragmatists.weaving.config.Config.ASM_VERSION;
-
 
 public class MethodInstructionsExtractor extends ClassVisitor {
     private final String methodName;
+    private final String methodDescriptor;
     private final Function<byte[], ClassReader> classReaderProvider;
-    private final Function<String, ExtractingMethodVisitor> extractingMethodVisitorProvider;
+    private final Function<MethodCharacteristic, ExtractingMethodVisitor> extractingMethodVisitorProvider;
 
     private ExtractingMethodVisitor extractingMethodVisitor;
 
     public MethodInstructionsExtractor(String methodName) {
-        this(methodName, ClassReader::new, ExtractingMethodVisitor::forDescriptor);
+        this(methodName, null);
+    }
+
+    public MethodInstructionsExtractor(String methodName, String methodDescriptor) {
+        this(methodName, methodDescriptor, ClassReader::new, ExtractingMethodVisitor::of);
     }
 
     public MethodInstructionsExtractor(String methodName,
                                        Function<byte[], ClassReader> classReaderProvider,
-                                       Function<String, ExtractingMethodVisitor> extractingMethodVisitorProvider) {
-        super(ASM_VERSION);
+                                       Function<MethodCharacteristic, ExtractingMethodVisitor> extractingMethodVisitorProvider) {
+        this(methodName, null, classReaderProvider, extractingMethodVisitorProvider);
+    }
+
+    public MethodInstructionsExtractor(String methodName,
+                                       String methodDescriptor,
+                                       Function<byte[], ClassReader> classReaderProvider,
+                                       Function<MethodCharacteristic, ExtractingMethodVisitor> extractingMethodVisitorProvider) {
+        super(Config.ASM_VERSION);
+        this.methodDescriptor = methodDescriptor;
 
         Objects.requireNonNull(methodName, "Method name cannot be null");
         this.methodName = methodName;
@@ -37,20 +50,34 @@ public class MethodInstructionsExtractor extends ClassVisitor {
     /**
      * @return instructions collected during last visitation of the bytecode
      */
-    public Instructions extract(byte[] classBytecode) {
+    public Optional<Instructions> extract(byte[] classBytecode) {
         ClassReader classReader = classReaderProvider.apply(classBytecode);
         classReader.accept(this, 0);
 
-        return extractingMethodVisitor.getInstructions();
+        if (extractingMethodVisitor != null) {
+            return Optional.of(extractingMethodVisitor.getInstructions());
+        } else {
+            return Optional.empty();
+        }
     }
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-        if (!methodName.equals(name)) {
+        if (methodMatches(name, descriptor)) {
+            MethodCharacteristic characteristic = MethodCharacteristic.builder()
+                    .accessFlag(access)
+                    .name(name)
+                    .descriptor(descriptor)
+                    .build();
+
+            extractingMethodVisitor = extractingMethodVisitorProvider.apply(characteristic);
+            return extractingMethodVisitor;
+        } else {
             return super.visitMethod(access, name, descriptor, signature, exceptions);
         }
+    }
 
-        extractingMethodVisitor = extractingMethodVisitorProvider.apply(descriptor);
-        return extractingMethodVisitor;
+    private boolean methodMatches(String name, String descriptor) {
+        return methodName.equals(name) && (methodDescriptor == null || methodDescriptor.equals(descriptor));
     }
 }
