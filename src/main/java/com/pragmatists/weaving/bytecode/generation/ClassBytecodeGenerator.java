@@ -8,6 +8,9 @@ import org.objectweb.asm.util.TraceClassVisitor;
 import java.io.PrintWriter;
 import java.util.List;
 
+/**
+ * TODO
+ */
 @Builder
 public class ClassBytecodeGenerator {
     private final ClassCharacteristic characteristic;

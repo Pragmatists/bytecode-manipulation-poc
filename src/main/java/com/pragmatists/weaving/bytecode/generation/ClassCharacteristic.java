@@ -3,7 +3,7 @@ package com.pragmatists.weaving.bytecode.generation;
 import lombok.Builder;
 import lombok.Value;
 
-import static com.pragmatists.weaving.utils.Types.binaryToInternal;
+import static com.pragmatists.weaving.type.Types.binaryToInternal;
 
 @Value
 @Builder

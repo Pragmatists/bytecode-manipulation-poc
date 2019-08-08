@@ -1,7 +1,7 @@
 package com.pragmatists.weaving.bytecode.generation;
 
 import com.pragmatists.weaving.bytecode.Instructions;
-import com.pragmatists.weaving.utils.Types;
+import com.pragmatists.weaving.type.Types;
 import lombok.Builder;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -12,10 +12,13 @@ import java.util.function.Consumer;
 
 import static com.pragmatists.weaving.bytecode.generation.Identifiers.CONSTRUCTOR_METHOD_NAME;
 import static com.pragmatists.weaving.bytecode.generation.MethodCharacteristic.DEFAULT_CONSTRUCTOR_CHARACTERISTIC;
-import static com.pragmatists.weaving.utils.Types.internalName;
-import static com.pragmatists.weaving.utils.Types.methodDescriptor;
+import static com.pragmatists.weaving.type.Types.internalName;
+import static com.pragmatists.weaving.type.Types.methodDescriptor;
 import static org.objectweb.asm.Opcodes.*;
 
+/**
+ * TODO
+ */
 @Builder
 public class MethodGenerator {
     public static final MethodGenerator DEFAULT_CONSTRUCTOR_OF_OBJECT_SUBCLASS =

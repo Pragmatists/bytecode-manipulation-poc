@@ -10,7 +10,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static com.pragmatists.weaving.bytecode.generation.Identifiers.CONSTRUCTOR_METHOD_NAME;
-import static com.pragmatists.weaving.utils.Types.methodDescriptor;
+import static com.pragmatists.weaving.type.Types.methodDescriptor;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 
 @Getter

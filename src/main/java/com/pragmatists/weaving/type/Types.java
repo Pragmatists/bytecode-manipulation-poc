@@ -1,4 +1,4 @@
-package com.pragmatists.weaving.utils;
+package com.pragmatists.weaving.type;
 
 import org.objectweb.asm.Type;
 

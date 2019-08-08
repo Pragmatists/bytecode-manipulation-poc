@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.pragmatists.weaving.bytecode.generation.MethodGenerator.DEFAULT_CONSTRUCTOR_OF_OBJECT_SUBCLASS;
-import static com.pragmatists.weaving.utils.Types.internalName;
+import static com.pragmatists.weaving.type.Types.internalName;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.V11;

@@ -13,8 +13,8 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static com.pragmatists.weaving.bytecode.generation.MethodGenerator.DEFAULT_CONSTRUCTOR_OF_OBJECT_SUBCLASS;
-import static com.pragmatists.weaving.utils.Types.internalName;
-import static com.pragmatists.weaving.utils.Types.methodDescriptor;
+import static com.pragmatists.weaving.type.Types.internalName;
+import static com.pragmatists.weaving.type.Types.methodDescriptor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.objectweb.asm.Opcodes.*;

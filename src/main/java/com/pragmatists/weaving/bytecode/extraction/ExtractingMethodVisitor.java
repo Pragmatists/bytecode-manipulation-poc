@@ -8,7 +8,7 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
-import static com.pragmatists.weaving.utils.Types.correspondingReturnBytecode;
+import static com.pragmatists.weaving.type.Types.correspondingReturnBytecode;
 
 class ExtractingMethodVisitor extends MethodVisitor {
     private final Instructions instructions = new Instructions();

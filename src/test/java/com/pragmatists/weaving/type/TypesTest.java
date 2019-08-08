@@ -1,12 +1,10 @@
-package com.pragmatists.weaving.utils;
+package com.pragmatists.weaving.type;
 
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class TypesTest {
-    // TODO need to test other methods here too
-
     @Test
     void shouldReturnCorrectDescriptorForVoidMethodWithoutArguments() {
         String result = Types.methodDescriptor(null);
