@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PrintCaptor extends PrintStream {
-    private List<String> results = new ArrayList<>();
+    private final List<String> results = new ArrayList<>();
 
     public PrintCaptor() {
         super(new OutputStream() {

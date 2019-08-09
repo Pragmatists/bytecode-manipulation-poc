@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>pragmatists.pl</groupId>
-    <artifactId>bytecode-weaving-poc</artifactId>
+    <artifactId>bytecode-manipulation-poc</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
