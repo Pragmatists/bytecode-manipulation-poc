@@ -1,4 +1,4 @@
-package com.pragmatists.manipulation.examples;
+package examples.classes;
 
 import java.util.ArrayList;
 import java.util.List;

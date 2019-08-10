@@ -1,5 +1,7 @@
 package com.pragmatists.manipulation.bytecode.generation;
 
+import com.pragmatists.manipulation.bytecode.characteristics.ClassCharacteristic;
+import com.pragmatists.manipulation.bytecode.characteristics.MethodCharacteristic;
 import com.pragmatists.manipulation.loaders.ClassSubstitutor;
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.ClassWriter;
@@ -8,13 +10,14 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 
 import static com.pragmatists.manipulation.bytecode.generation.MethodGenerator.DEFAULT_CONSTRUCTOR_OF_OBJECT_SUBCLASS;
 import static com.pragmatists.manipulation.type.Types.internalName;
 import static com.pragmatists.manipulation.type.Types.methodDescriptor;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.objectweb.asm.Opcodes.*;
@@ -24,10 +27,10 @@ class MethodGeneratorIT {
     private static final String FULLY_QUALIFIED_CLASS_NAME = "pkg.GeneratedClass";
 
     @Test
-    void shouldAutoGenerateReturnForVoid() throws IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
+    void shouldAutoGenerateReturnForVoid() throws IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException, ClassNotFoundException {
         MethodCharacteristic methodCharacteristic = getCharacteristicWithNoParamsReturning(null);
         MethodGenerator returnThis = MethodGenerator.builder()
-                .characteristic(methodCharacteristic)
+                .methodCharacteristic(methodCharacteristic)
                 .methodBodyWriter(mv -> mv.visitVarInsn(ALOAD, 0)) // return this;
                 .build();
 
@@ -43,15 +46,11 @@ class MethodGeneratorIT {
     }
 
     @Test
-    void shouldAutoGenerateReturnForObjects() throws IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
-        MethodCharacteristic methodCharacteristic = MethodCharacteristic.builder()
-                .accessFlag(ACC_PUBLIC)
-                .name(METHOD_NAME)
-                .paramTypes(Collections.emptyList())
-                .returnType(Object.class)
-                .build();
+    void shouldAutoGenerateReturnForObjects() throws IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException, ClassNotFoundException {
+        MethodCharacteristic methodCharacteristic =
+                new MethodCharacteristic(ACC_PUBLIC, METHOD_NAME, emptyList(), Object.class);
         MethodGenerator returnThis = MethodGenerator.builder()
-                .characteristic(methodCharacteristic)
+                .methodCharacteristic(methodCharacteristic)
                 .methodBodyWriter(mv -> mv.visitVarInsn(ALOAD, 0)) // push `this` onto the stack
                 .build();
 
@@ -67,15 +66,11 @@ class MethodGeneratorIT {
     }
 
     @Test
-    void shouldAutoGenerateReturnForArrays() throws IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
-        MethodCharacteristic methodCharacteristic = MethodCharacteristic.builder()
-                .accessFlag(ACC_PUBLIC)
-                .name(METHOD_NAME)
-                .paramTypes(Collections.singletonList(int[].class))
-                .returnType(int[].class)
-                .build();
+    void shouldAutoGenerateReturnForArrays() throws IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException, ClassNotFoundException {
+        MethodCharacteristic methodCharacteristic =
+                new MethodCharacteristic(ACC_PUBLIC, METHOD_NAME, singletonList(int[].class), int[].class);
         MethodGenerator returnParameter = MethodGenerator.builder()
-                .characteristic(methodCharacteristic)
+                .methodCharacteristic(methodCharacteristic)
                 .methodBodyWriter(mv -> mv.visitVarInsn(ALOAD, 1)) // push first local variable (=first argument) onto the stack
                 .build();
 
@@ -86,15 +81,14 @@ class MethodGeneratorIT {
         Method method = generatedClass.getMethod(METHOD_NAME, int[].class);
         Object generatedClassInstance = constructor.newInstance();
 
-        final int[] returned = {1, 5};
+        int[] returned = {1, 5};
         Object result = method.invoke(generatedClassInstance, new Object[]{returned}); // will pop the argument back as result
 
         assertEquals(returned, result);
     }
 
     @Test
-    void shouldAutoGenerateReturnForPrimitiveBoolean()
-            throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
+    void shouldAutoGenerateReturnForPrimitiveBoolean() throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
         MethodCharacteristic methodCharacteristic = getCharacteristicWithNoParamsReturning(boolean.class);
         MethodGenerator returnParameter = getMethodGeneratorWithOneOpcode(methodCharacteristic, ICONST_3);
 
@@ -103,8 +97,7 @@ class MethodGeneratorIT {
     }
 
     @Test
-    void shouldAutoGenerateReturnForPrimitiveChar()
-            throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
+    void shouldAutoGenerateReturnForPrimitiveChar() throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
         MethodCharacteristic methodCharacteristic = getCharacteristicWithNoParamsReturning(char.class);
         MethodGenerator returnParameter = getMethodGeneratorWithOneOpcode(methodCharacteristic, ICONST_3);
 
@@ -113,8 +106,7 @@ class MethodGeneratorIT {
     }
 
     @Test
-    void shouldAutoGenerateReturnForPrimitiveByte()
-            throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
+    void shouldAutoGenerateReturnForPrimitiveByte() throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
         MethodCharacteristic methodCharacteristic = getCharacteristicWithNoParamsReturning(byte.class);
         MethodGenerator returnParameter = getMethodGeneratorWithOneOpcode(methodCharacteristic, ICONST_3);
 
@@ -123,8 +115,7 @@ class MethodGeneratorIT {
     }
 
     @Test
-    void shouldAutoGenerateReturnForPrimitiveShort()
-            throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
+    void shouldAutoGenerateReturnForPrimitiveShort() throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
         MethodCharacteristic methodCharacteristic = getCharacteristicWithNoParamsReturning(short.class);
         MethodGenerator returnParameter = getMethodGeneratorWithOneOpcode(methodCharacteristic, ICONST_3);
 
@@ -133,8 +124,7 @@ class MethodGeneratorIT {
     }
 
     @Test
-    void shouldAutoGenerateReturnForPrimitiveInt()
-            throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
+    void shouldAutoGenerateReturnForPrimitiveInt() throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
         MethodCharacteristic methodCharacteristic = getCharacteristicWithNoParamsReturning(int.class);
         MethodGenerator returnParameter = getMethodGeneratorWithOneOpcode(methodCharacteristic, ICONST_3);
 
@@ -143,8 +133,7 @@ class MethodGeneratorIT {
     }
 
     @Test
-    void shouldAutoGenerateReturnForPrimitiveLong()
-            throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
+    void shouldAutoGenerateReturnForPrimitiveLong() throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
         MethodCharacteristic methodCharacteristic = getCharacteristicWithNoParamsReturning(long.class);
         MethodGenerator returnParameter = getMethodGeneratorWithOneOpcode(methodCharacteristic, LCONST_1);
 
@@ -153,8 +142,7 @@ class MethodGeneratorIT {
     }
 
     @Test
-    void shouldAutoGenerateReturnForPrimitiveFloat()
-            throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
+    void shouldAutoGenerateReturnForPrimitiveFloat() throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
         MethodCharacteristic methodCharacteristic = getCharacteristicWithNoParamsReturning(float.class);
         MethodGenerator returnParameter = getMethodGeneratorWithOneOpcode(methodCharacteristic, FCONST_1);
 
@@ -163,8 +151,7 @@ class MethodGeneratorIT {
     }
 
     @Test
-    void shouldAutoGenerateReturnForPrimitiveDouble()
-            throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
+    void shouldAutoGenerateReturnForPrimitiveDouble() throws ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
         MethodCharacteristic methodCharacteristic = getCharacteristicWithNoParamsReturning(double.class);
         MethodGenerator returnParameter = getMethodGeneratorWithOneOpcode(methodCharacteristic, DCONST_1);
 
@@ -173,11 +160,10 @@ class MethodGeneratorIT {
     }
 
     @Test
-    void shouldHandleAllKindsOfParameterTypes()
-            throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+    void shouldHandleAllKindsOfParameterTypes() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
         MethodCharacteristic methodCharacteristic = getCharacteristic(String.class, String.class, int.class, String[].class);
         MethodGenerator build = MethodGenerator.builder()
-                .characteristic(methodCharacteristic)
+                .methodCharacteristic(methodCharacteristic)
                 .methodBodyWriter(mv -> {
                     mv.visitVarInsn(ALOAD, 1);      // pushing the String argument to stack
                     mv.visitVarInsn(ALOAD, 3);      // pushing the String[] argument to stack
@@ -195,12 +181,12 @@ class MethodGeneratorIT {
 
     private MethodGenerator getMethodGeneratorWithOneOpcode(MethodCharacteristic methodCharacteristic, int opcode) {
         return MethodGenerator.builder()
-                .characteristic(methodCharacteristic)
+                .methodCharacteristic(methodCharacteristic)
                 .methodBodyWriter(mv -> mv.visitInsn(opcode))
                 .build();
     }
 
-    private Object invokeDefinedMethod(MethodGenerator returnParameter, Object... params) throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
+    private Object invokeDefinedMethod(MethodGenerator returnParameter, Object... params) throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException, ClassNotFoundException {
         byte[] bytecode = getBytecode(returnParameter);
         Class<?> generatedClass = getLoadedClass(bytecode);
         Constructor<?> constructor = getConstructor(generatedClass);
@@ -210,21 +196,23 @@ class MethodGeneratorIT {
         return method.invoke(generatedClassInstance, params);
     }
 
-    private Object invokeDefinedMethodPrimitiveIntParams(MethodGenerator returnParameter, Object... params)
-            throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
+    private Object invokeDefinedMethodPrimitiveIntParams(MethodGenerator returnParameter, Object... params) throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException, ClassNotFoundException {
         byte[] bytecode = getBytecode(returnParameter);
         Class<?> generatedClass = getLoadedClass(bytecode);
-        Constructor<?> constructor = getConstructor(generatedClass);
-        Method method = generatedClass.getMethod(METHOD_NAME, paramsToTypes(params, c -> {
-            if (c == Integer.class) {
-                return int.class;
-            }
 
-            return c;
-        }));
+        Constructor<?> constructor = getConstructor(generatedClass);
+        Method method = generatedClass.getMethod(METHOD_NAME, paramsToTypes(params, this::replaceIntegerWithPrimitiveInt));
         Object generatedClassInstance = constructor.newInstance();
 
         return method.invoke(generatedClassInstance, params);
+    }
+
+    private Class replaceIntegerWithPrimitiveInt(Class c) {
+        if (c == Integer.class) {
+            return int.class;
+        }
+
+        return c;
     }
 
     private Class[] paramsToTypes(Object[] params) {
@@ -241,24 +229,14 @@ class MethodGeneratorIT {
     }
 
     private MethodCharacteristic getCharacteristicWithNoParamsReturning(Class type) {
-        return MethodCharacteristic.builder()
-                .accessFlag(ACC_PUBLIC)
-                .name(METHOD_NAME)
-                .paramTypes(Collections.emptyList())
-                .returnType(type)
-                .build();
+        return new MethodCharacteristic(ACC_PUBLIC, METHOD_NAME, emptyList(), type);
     }
 
     private MethodCharacteristic getCharacteristic(Class returnType, Class... params) {
-        return MethodCharacteristic.builder()
-                .accessFlag(ACC_PUBLIC)
-                .name(METHOD_NAME)
-                .paramTypes(Arrays.asList(params))
-                .returnType(returnType)
-                .build();
+        return new MethodCharacteristic(ACC_PUBLIC, METHOD_NAME, Arrays.asList(params), returnType);
     }
 
-    private Class<?> getLoadedClass(byte[] bytecode) {
+    private Class<?> getLoadedClass(byte[] bytecode) throws ClassNotFoundException {
         ClassSubstitutor classSubstitutor = new ClassSubstitutor(Map.of(FULLY_QUALIFIED_CLASS_NAME, bytecode));
         return classSubstitutor.loadClass(FULLY_QUALIFIED_CLASS_NAME);
     }
@@ -276,6 +254,7 @@ class MethodGeneratorIT {
                 .superName(Object.class.getName())
                 .interfaces(new String[0])
                 .build();
+
         return ClassBytecodeGenerator.builder()
                 .characteristic(classCharacteristic)
                 .methodGenerators(Arrays.asList(DEFAULT_CONSTRUCTOR_OF_OBJECT_SUBCLASS, returnThis))

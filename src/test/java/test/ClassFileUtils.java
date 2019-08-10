@@ -1,4 +1,4 @@
-package com.pragmatists.manipulation;
+package test;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,7 +11,7 @@ public class ClassFileUtils {
         return getBytecode(resourceAsStream);
     }
 
-    public static byte[] getBytecode(String classFileName) {
+    public static byte[] getBytecodeFromResources(String classFileName) {
         return getBytecode(ClassLoader.getSystemClassLoader().getResourceAsStream(classFileName));
     }
 

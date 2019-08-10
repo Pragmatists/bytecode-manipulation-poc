@@ -1,4 +1,4 @@
-package com.pragmatists.manipulation.examples;
+package examples.classes;
 
 public class Calculator {
     public String add(long x, long y) {

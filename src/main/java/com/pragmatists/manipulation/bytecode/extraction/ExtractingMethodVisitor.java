@@ -1,204 +1,29 @@
 package com.pragmatists.manipulation.bytecode.extraction;
 
 import com.pragmatists.manipulation.bytecode.Instructions;
-import com.pragmatists.manipulation.bytecode.generation.MethodCharacteristic;
-import com.pragmatists.manipulation.config.Config;
-import org.objectweb.asm.Handle;
-import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Type;
 
-import static com.pragmatists.manipulation.type.Types.correspondingReturnBytecode;
 
-class ExtractingMethodVisitor extends MethodVisitor {
-    private final Instructions instructions = new Instructions();
-    private final int returnOpcode;
-
-    private boolean pastReturn = false;
-
-    private ExtractingMethodVisitor(MethodCharacteristic methodCharacteristic, int returnOpcode) {
-        super(Config.ASM_VERSION);
-        this.returnOpcode = returnOpcode;
-        instructions.setMethodCharacteristic(methodCharacteristic);
+/**
+ * A MethodVisitor that will extract bytecode instructions and collect them as {@link Instructions}.
+ * When ExtractingMethodVisitor visits an instruction that it wants to extract, it should call
+ * {@link Instructions#collectInstruction}, e.g.:
+ * <pre>{@code
+ *      public void visitInsn(int opcode) {
+ *             instructions.collectInstruction(mv -> mv.visitInsn(opcode));
+ *      }
+ * }</pre>
+ * This way the instructions can be later visited by a different MethodVisitor, e.g. a one called by a
+ * {@link org.objectweb.asm.ClassWriter ClassWriter}.
+ */
+public abstract class ExtractingMethodVisitor extends MethodVisitor {
+    public ExtractingMethodVisitor(int api) {
+        super(api);
     }
 
-    static ExtractingMethodVisitor of(MethodCharacteristic methodCharacteristic) {
-        String descriptor = methodCharacteristic.getDescriptor();
-        Type returnType = Type.getReturnType(descriptor);
-        int returnOpcode = correspondingReturnBytecode(returnType);
-        return new ExtractingMethodVisitor(methodCharacteristic, returnOpcode);
+    public ExtractingMethodVisitor(int api, MethodVisitor methodVisitor) {
+        super(api, methodVisitor);
     }
 
-    Instructions getInstructions() {
-        return instructions;
-    }
-
-    @Override
-    public void visitInsn(int opcode) {
-        pastReturn = opcode == returnOpcode;
-        if (pastReturn) {
-            return;
-        }
-
-        instructions.collectInstruction(mv -> mv.visitInsn(opcode));
-    }
-
-    @Override
-    public void visitIntInsn(int opcode, int operand) {
-        if (pastReturn) {
-            return;
-        }
-
-        instructions.collectInstruction(mv -> mv.visitIntInsn(opcode, operand));
-    }
-
-    @Override
-    public void visitVarInsn(int opcode, int var) {
-        if (pastReturn) {
-            return;
-        }
-
-        instructions.collectInstruction(mv -> mv.visitVarInsn(opcode, var));
-    }
-
-    @Override
-    public void visitTypeInsn(int opcode, String type) {
-        if (pastReturn) {
-            return;
-        }
-
-        instructions.collectInstruction(mv -> mv.visitTypeInsn(opcode, type));
-    }
-
-    @Override
-    public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
-        if (pastReturn) {
-            return;
-        }
-
-        instructions.collectInstruction(mv -> mv.visitFieldInsn(opcode, owner, name, descriptor));
-    }
-
-    @SuppressWarnings("deprecation")
-    @Override
-    public void visitMethodInsn(int opcode, String owner, String name, String descriptor) {
-        if (pastReturn) {
-            return;
-        }
-
-        instructions.collectInstruction(mv -> mv.visitMethodInsn(opcode, owner, name, descriptor));
-    }
-
-    @Override
-    public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
-        instructions.collectInstruction(mv -> mv.visitMethodInsn(opcode, owner, name, descriptor, isInterface));
-    }
-
-    @Override
-    public void visitInvokeDynamicInsn(String name, String descriptor, Handle bootstrapMethodHandle, Object... bootstrapMethodArguments) {
-        if (pastReturn) {
-            return;
-        }
-
-        instructions.collectInstruction(mv -> mv.visitInvokeDynamicInsn(name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments));
-    }
-
-    @Override
-    public void visitJumpInsn(int opcode, Label label) {
-        if (pastReturn) {
-            return;
-        }
-
-        instructions.collectInstruction(mv -> mv.visitJumpInsn(opcode, label));
-    }
-
-    @Override
-    public void visitLabel(Label label) {
-        if (pastReturn) {
-            return;
-        }
-
-        instructions.collectInstruction(mv -> mv.visitLabel(label));
-    }
-
-    @Override
-    public void visitLdcInsn(Object value) {
-        if (pastReturn) {
-            return;
-        }
-
-        instructions.collectInstruction(mv -> mv.visitLdcInsn(value));
-    }
-
-    @Override
-    public void visitIincInsn(int var, int increment) {
-        if (pastReturn) {
-            return;
-        }
-
-        instructions.collectInstruction(mv -> mv.visitIincInsn(var, increment));
-    }
-
-    @Override
-    public void visitTableSwitchInsn(int min, int max, Label dflt, Label... labels) {
-        if (pastReturn) {
-            return;
-        }
-
-        instructions.collectInstruction(mv -> mv.visitTableSwitchInsn(min, max, dflt, labels));
-    }
-
-    @Override
-    public void visitLookupSwitchInsn(Label dflt, int[] keys, Label[] labels) {
-        if (pastReturn) {
-            return;
-        }
-
-        instructions.collectInstruction(mv -> mv.visitLookupSwitchInsn(dflt, keys, labels));
-    }
-
-    @Override
-    public void visitMultiANewArrayInsn(String descriptor, int numDimensions) {
-        if (pastReturn) {
-            return;
-        }
-
-        instructions.collectInstruction(mv -> mv.visitMultiANewArrayInsn(descriptor, numDimensions));
-    }
-
-    @Override
-    public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
-        if (pastReturn) {
-            return;
-        }
-
-        instructions.collectInstruction(mv -> mv.visitTryCatchBlock(start, end, handler, type));
-    }
-
-    @Override
-    public void visitLocalVariable(String name, String descriptor, String signature, Label start, Label end, int index) {
-        if (pastReturn) {
-            return;
-        }
-
-        instructions.collectInstruction(mv -> mv.visitLocalVariable(name, descriptor, signature, start, end, index));
-    }
-
-    @Override
-    public void visitLineNumber(int line, Label start) {
-        if (pastReturn) {
-            return;
-        }
-
-        instructions.collectInstruction(mv -> mv.visitLineNumber(line, start));
-    }
-
-    @Override
-    public void visitMaxs(int maxStack, int maxLocals) {
-        if (pastReturn) {
-            return;
-        }
-
-        instructions.collectInstruction(mv -> mv.visitMaxs(maxStack, maxLocals));
-    }
+    abstract Instructions getInstructions();
 }

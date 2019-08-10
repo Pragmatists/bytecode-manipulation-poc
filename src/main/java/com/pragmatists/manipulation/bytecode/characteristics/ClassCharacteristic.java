@@ -1,4 +1,4 @@
-package com.pragmatists.manipulation.bytecode.generation;
+package com.pragmatists.manipulation.bytecode.characteristics;
 
 import lombok.Builder;
 import lombok.Value;

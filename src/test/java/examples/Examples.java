@@ -1,19 +1,23 @@
-package com.pragmatists.manipulation.examples;
+package examples;
 
 import com.pragmatists.manipulation.bytecode.Instructions;
-import com.pragmatists.manipulation.bytecode.extraction.MethodInstructionsExtractor;
+import com.pragmatists.manipulation.bytecode.characteristics.ClassCharacteristic;
+import com.pragmatists.manipulation.bytecode.characteristics.MethodCharacteristic;
+import com.pragmatists.manipulation.bytecode.extraction.InstructionsExtractor;
 import com.pragmatists.manipulation.bytecode.generation.ClassBytecodeGenerator;
-import com.pragmatists.manipulation.bytecode.generation.ClassCharacteristic;
-import com.pragmatists.manipulation.bytecode.generation.MethodCharacteristic;
 import com.pragmatists.manipulation.bytecode.generation.MethodGenerator;
 import com.pragmatists.manipulation.bytecode.modification.AppendingMethodVisitor;
-import com.pragmatists.manipulation.bytecode.modification.MethodBytecodeModifier;
+import com.pragmatists.manipulation.bytecode.modification.InstructionsModifier;
+import com.pragmatists.manipulation.bytecode.modification.ModifyingMethodVisitorProvider;
 import com.pragmatists.manipulation.bytecode.modification.PrependingMethodVisitor;
 import com.pragmatists.manipulation.loaders.ClassSubstitutor;
 import com.pragmatists.manipulation.type.Types;
+import examples.classes.AnInterface;
+import examples.classes.Calculator;
+import examples.classes.DoubleReturner;
+import examples.classes.ListReturner;
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.MethodVisitor;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -21,14 +25,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
 
-import static com.pragmatists.manipulation.ClassFileUtils.getBytecode;
 import static com.pragmatists.manipulation.type.Types.internalName;
 import static com.pragmatists.manipulation.type.Types.methodDescriptor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.objectweb.asm.Opcodes.*;
+import static test.ClassFileUtils.getBytecode;
 
 public class Examples {
     private static final Calculator ORIGINAL_CALCULATOR_INSTANCE = new Calculator();
@@ -38,7 +41,7 @@ public class Examples {
     private static final String GENERATED_CLASS_FQNAME = "pkg.GeneratedClass";
 
     @Test
-    void simpleParameterHijacking() throws InvocationTargetException, IllegalAccessException, InstantiationException, NoSuchMethodException {
+    void simpleParameterHijacking() throws InvocationTargetException, IllegalAccessException, InstantiationException, NoSuchMethodException, ClassNotFoundException {
         var instructions = new Instructions();
         instructions.collectInstruction(mv -> {
             mv.visitLdcInsn(-1L);           // pushing -1L onto the stack
@@ -59,9 +62,9 @@ public class Examples {
     }
 
     @Test
-    void parameterHijackingWithBytecodeExtraction() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+    void parameterHijackingWithBytecodeExtraction() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, ClassNotFoundException {
         var timerClassBytecode = getBytecode(DoubleReturner.class);
-        var timerMethodExtractor = new MethodInstructionsExtractor("getValue"); // skipping descriptor, method unique
+        var timerMethodExtractor = new InstructionsExtractor("getValue"); // skipping descriptor, method unique
 
         var getTimeInstructions = timerMethodExtractor.extract(timerClassBytecode)
                 .orElseThrow(FailedExampleException::new);
@@ -86,7 +89,7 @@ public class Examples {
     }
 
     @Test
-    void modifyingReturnedValues() throws IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
+    void modifyingReturnedValues() throws IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException, ClassNotFoundException {
         var listReturnerClassBytecode = getBytecode(ListReturner.class);
 
         var injectedString = "Where did this come from?!";
@@ -125,17 +128,14 @@ public class Examples {
                 .build();
 
         var instructions = new Instructions();
-        var getValueMethodCharacteristic = MethodCharacteristic.builder()
-                .accessFlag(ACC_PUBLIC)
-                .name("getValue")
-                .returnType(String.class)
-                .paramTypes(Collections.singletonList(int.class))
-                .build();
+        var getValueMethodCharacteristic =
+                new MethodCharacteristic(ACC_PUBLIC, "getValue", Collections.singletonList(int.class), String.class);
         instructions.setMethodCharacteristic(getValueMethodCharacteristic);
+        var suffixToConcat = " is a number";
         instructions.collectInstruction(mv -> {
             mv.visitVarInsn(ILOAD, 1);
             mv.visitMethodInsn(INVOKESTATIC, internalName(String.class), "valueOf", methodDescriptor(String.class, int.class), false);
-            mv.visitLdcInsn(" is a number");
+            mv.visitLdcInsn(suffixToConcat);
             mv.visitMethodInsn(INVOKEVIRTUAL, internalName(String.class), "concat", methodDescriptor(String.class, String.class), false);
         });
 
@@ -144,7 +144,7 @@ public class Examples {
                 .characteristic(classCharacteristic)
                 .methodGenerators(Arrays.asList(
                         MethodGenerator.DEFAULT_CONSTRUCTOR_OF_OBJECT_SUBCLASS,
-                        MethodGenerator.of(instructions)
+                        MethodGenerator.from(instructions)
                 ))
                 .build()
                 .generate(classWriter);
@@ -152,7 +152,8 @@ public class Examples {
         var generatedClass = loadClassViaAppClassLoader(bytecode);
         var instance = (AnInterface) getInstance(generatedClass);
 
-        System.out.println(instance.getValue(15));
+        int intArgument = 15;
+        assertEquals(intArgument + suffixToConcat, instance.getValue(intArgument));
     }
 
     private Class loadClassViaAppClassLoader(byte[] bytecode) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
@@ -171,9 +172,9 @@ public class Examples {
                                        Instructions instructions,
                                        Class c,
                                        byte[] originalBytecode,
-                                       BiFunction<MethodVisitor, Instructions, MethodVisitor> methodVisitorProvider) {
+                                       ModifyingMethodVisitorProvider methodVisitorProvider) throws ClassNotFoundException {
         var modifiedBytecode =
-                MethodBytecodeModifier.modifyMethodInClassfile(methodName, descriptor, originalBytecode, instructions, methodVisitorProvider);
+                InstructionsModifier.modifyMethodInClassfile(methodName, descriptor, originalBytecode, instructions, methodVisitorProvider);
         var classSubstitutor = new ClassSubstitutor(Map.of(c.getName(), modifiedBytecode));
         return classSubstitutor.loadClass(c.getName());
     }

@@ -1,8 +1,8 @@
 package com.pragmatists.manipulation.loaders;
 
+import com.pragmatists.manipulation.bytecode.characteristics.ClassCharacteristic;
+import com.pragmatists.manipulation.bytecode.characteristics.MethodCharacteristic;
 import com.pragmatists.manipulation.bytecode.generation.ClassBytecodeGenerator;
-import com.pragmatists.manipulation.bytecode.generation.ClassCharacteristic;
-import com.pragmatists.manipulation.bytecode.generation.MethodCharacteristic;
 import com.pragmatists.manipulation.bytecode.generation.MethodGenerator;
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.ClassWriter;
@@ -27,8 +27,7 @@ class ClassSubstitutorTest {
     private static final String HELLO_WORLD = "Hello World!";
 
     @Test
-    void shouldSubstituteAlreadyLoadedClass()
-            throws IllegalAccessException, InstantiationException, InvocationTargetException {
+    void shouldSubstituteAlreadyLoadedClass() throws IllegalAccessException, InstantiationException, InvocationTargetException, ClassNotFoundException {
         String className = Target.class.getName();
         Map<String, byte[]> classesToBytecode = Map.of(className, generateClassLikeTarget());
 
@@ -52,14 +51,14 @@ class ClassSubstitutorTest {
 
     @Test
     void shouldValidateClassNames() {
-        final String invalidClassName = "1.x.y.Z";
+        String invalidClassName = "1.x.y.Z";
         Map<String, byte[]> classesToBytecode = Map.of(invalidClassName, new byte[0]);
         assertThrows(IllegalArgumentException.class, () -> new ClassSubstitutor(classesToBytecode),
                 String.format("'%s' is an invalid class name.", invalidClassName));
     }
 
     @Test
-    void shouldLoadClassNotLoadedByAnyOtherClassLoader() throws IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
+    void shouldLoadClassNotLoadedByAnyOtherClassLoader() throws IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException, ClassNotFoundException {
         String className = "TotallyFreshClass";
         Map<String, byte[]> classesToBytecode = Map.of(className, generateSimpleClass(className));
 
@@ -77,8 +76,18 @@ class ClassSubstitutorTest {
         assertEquals(HELLO_WORLD, results.get(0));
     }
 
-    private Object getInstance(Class<?> substitutedClass)
-            throws InstantiationException, IllegalAccessException, InvocationTargetException {
+    @Test
+    void shouldThrowClassNotFoundExceptionWhenCannotLoadBytecodeOfClassListedForSubstitution() {
+        String className = "MappedToInvalidBytes";
+        Map<String, byte[]> classesToBytecode = Map.of(className, new byte[]{});
+
+        ClassSubstitutor classSubstitutor = new ClassSubstitutor(classesToBytecode);
+
+        assertThrows(ClassNotFoundException.class, () -> classSubstitutor.loadClass(className),
+                "Could not load bytecode of class MappedToInvalidBytes listed for substitution");
+    }
+
+    private Object getInstance(Class<?> substitutedClass) throws InstantiationException, IllegalAccessException, InvocationTargetException {
         return substitutedClass.getConstructors()[0].newInstance();
     }
 
@@ -93,24 +102,16 @@ class ClassSubstitutorTest {
                 .interfaces(new String[]{internalName(Clazz.class)})
                 .build();
 
-        MethodCharacteristic methodCharacteristic1 = MethodCharacteristic.builder()
-                .accessFlag(ACC_PUBLIC)
-                .name("getClassId")
-                .paramTypes(Collections.emptyList())
-                .returnType(String.class)
-                .build();
+        MethodCharacteristic methodCharacteristic1 =
+                new MethodCharacteristic(ACC_PUBLIC, "getClassId", Collections.emptyList(), String.class);
         MethodGenerator method1 = MethodGenerator.builder()
-                .characteristic(methodCharacteristic1)
+                .methodCharacteristic(methodCharacteristic1)
                 .methodBodyWriter(mv -> mv.visitLdcInsn("target")).build();
 
-        MethodCharacteristic methodCharacteristic2 = MethodCharacteristic.builder()
-                .accessFlag(ACC_PUBLIC)
-                .name("getClassId2")
-                .paramTypes(Collections.emptyList())
-                .returnType(String.class)
-                .build();
+        MethodCharacteristic methodCharacteristic2 =
+                new MethodCharacteristic(ACC_PUBLIC, "getClassId2", Collections.emptyList(), String.class);
         MethodGenerator method2 = MethodGenerator.builder()
-                .characteristic(methodCharacteristic2)
+                .methodCharacteristic(methodCharacteristic2)
                 .methodBodyWriter(mv -> mv.visitLdcInsn("target2"))
                 .build();
 
@@ -132,15 +133,11 @@ class ClassSubstitutorTest {
                 .interfaces(new String[0])
                 .build();
 
-        MethodCharacteristic printMethodCharacteristic = MethodCharacteristic.builder()
-                .accessFlag(ACC_PUBLIC)
-                .name("print")
-                .paramTypes(Collections.emptyList())
-                .returnType(null)
-                .build();
+        MethodCharacteristic printMethodCharacteristic =
+                new MethodCharacteristic(ACC_PUBLIC, "print", Collections.emptyList(), null);
         MethodGenerator print = MethodGenerator.builder()
-                .characteristic(printMethodCharacteristic)
-                .methodBodyWriter(mv -> MethodGenerator.soutBytecode(mv, HELLO_WORLD))
+                .methodCharacteristic(printMethodCharacteristic)
+                .methodBodyWriter(mv -> MethodGenerator.soutPrintlnInstructions(mv, HELLO_WORLD))
                 .build();
 
         return ClassBytecodeGenerator.builder()

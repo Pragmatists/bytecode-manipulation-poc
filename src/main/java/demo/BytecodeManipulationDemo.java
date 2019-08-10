@@ -1,29 +1,29 @@
 package demo;
 
 import com.pragmatists.manipulation.bytecode.Instructions;
-import com.pragmatists.manipulation.bytecode.extraction.MethodInstructionsExtractor;
+import com.pragmatists.manipulation.bytecode.extraction.InstructionsExtractor;
 import com.pragmatists.manipulation.bytecode.modification.AppendingMethodVisitor;
-import com.pragmatists.manipulation.bytecode.modification.MethodBytecodeModifier;
+import com.pragmatists.manipulation.bytecode.modification.InstructionsModifier;
 import com.pragmatists.manipulation.loaders.ClassSubstitutor;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
 
-import static com.pragmatists.manipulation.ClassFileUtils.getBytecode;
 import static com.pragmatists.manipulation.type.Types.methodDescriptor;
 import static org.objectweb.asm.Opcodes.POP;
 
 public class BytecodeManipulationDemo {
-    public static void main(String[] args) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public static void main(String[] args) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, ClassNotFoundException {
         String mainFQClassName = "demo.RunThis";
         String stringProviderFQClassName = "demo.StringProvider";
 
-        byte[] mainBytecode = getBytecode("RunThis.class");
-        byte[] stringProviderBytecode = getBytecode("StringProvider.class");
-        byte[] timeProviderBytecode = getBytecode("TimePrinter.class");
+        byte[] mainBytecode = getBytecodeFromResources("RunThis.class");
+        byte[] stringProviderBytecode = getBytecodeFromResources("StringProvider.class");
+        byte[] timeProviderBytecode = getBytecodeFromResources("TimePrinter.class");
 
-        MethodInstructionsExtractor nowExtractor = new MethodInstructionsExtractor("now");
+        InstructionsExtractor nowExtractor = new InstructionsExtractor("now");
         Instructions extractedCode = nowExtractor.extract(timeProviderBytecode)
                 .orElse(new Instructions());
 
@@ -31,10 +31,10 @@ public class BytecodeManipulationDemo {
         instructions.collectInstruction(mv -> {
             mv.visitInsn(POP);
             extractedCode.appendMethodInstructions(mv);
-            mv.visitLdcInsn("WOW!");
+            mv.visitLdcInsn("Nobody expected this!");
         });
 
-        final byte[] modifiedStringProviderBytecode = MethodBytecodeModifier.modifyMethodInClassfile(
+        byte[] modifiedStringProviderBytecode = InstructionsModifier.modifyMethodInClassfile(
                 "get", methodDescriptor(String.class), stringProviderBytecode, instructions, AppendingMethodVisitor::new);
 
         Map<String, byte[]> classesToTargetBytecode = Map.of(
@@ -47,5 +47,14 @@ public class BytecodeManipulationDemo {
 
         Method main = c.getMethod("main", String[].class);
         main.invoke(null, new Object[]{new String[0]});
+    }
+
+    private static byte[] getBytecodeFromResources(String classFilePath) {
+        try {
+            ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
+            return systemClassLoader.getResourceAsStream(classFilePath).readAllBytes();
+        } catch (IOException | NullPointerException e) {
+            throw new RuntimeException(String.format("Couldn't load class file from path %s", classFilePath), e);
+        }
     }
 }

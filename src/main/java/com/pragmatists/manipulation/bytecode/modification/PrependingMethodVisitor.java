@@ -5,7 +5,11 @@ import org.objectweb.asm.MethodVisitor;
 
 import static org.objectweb.asm.Opcodes.ASM7;
 
-public class PrependingMethodVisitor extends MethodVisitor {
+/**
+ * PrependingMethodVisitor injects instructions at the method's beginning, before any other instructions present at the
+ * moment of visitation.
+ */
+public class PrependingMethodVisitor extends ModifyingMethodVisitor {
     private final MethodVisitor originalMethodVisitor;
     private final Instructions instructions;
 

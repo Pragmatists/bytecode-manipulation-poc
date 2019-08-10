@@ -8,30 +8,35 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 
 import java.util.Objects;
-import java.util.function.BiFunction;
 
 /**
- * TODO
+ * MethodBytecodeModifier uses special MethodVisitors (@link ModifyingMethodVisitor) to modify instructions of one of
+ * the visited class's methods. Several ModifyingMethodVisitors can be combined to apply different changes, but the
+ * order of visiting is relevant.
  */
-public class MethodBytecodeModifier extends ClassVisitor {
+public class InstructionsModifier extends ClassVisitor {
     private final String methodName;
     private final String descriptor;
     private final Instructions instructions;
     private final ClassVisitor classVisitor;
-    private final BiFunction<MethodVisitor, Instructions, MethodVisitor> methodVisitorProvider;
+    private final ModifyingMethodVisitorProvider methodVisitorProvider;
 
-    public MethodBytecodeModifier(String methodName,
-                                  Instructions instructions,
-                                  ClassVisitor classVisitor,
-                                  BiFunction<MethodVisitor, Instructions, MethodVisitor> methodVisitorProvider) {
+    /**
+     * Use this constructor only if the methodName argument value uniquely identifies a method in the class (i.e. when
+     * descriptor unnecessary).
+     */
+    public InstructionsModifier(String methodName,
+                                Instructions instructions,
+                                ClassVisitor classVisitor,
+                                ModifyingMethodVisitorProvider methodVisitorProvider) {
         this(methodName, null, instructions, classVisitor, methodVisitorProvider);
     }
 
-    public MethodBytecodeModifier(String methodName,
-                                  String descriptor,
-                                  Instructions instructions,
-                                  ClassVisitor classVisitor,
-                                  BiFunction<MethodVisitor, Instructions, MethodVisitor> methodVisitorProvider) {
+    public InstructionsModifier(String methodName,
+                                String descriptor,
+                                Instructions instructions,
+                                ClassVisitor classVisitor,
+                                ModifyingMethodVisitorProvider methodVisitorProvider) {
         super(Config.ASM_VERSION, classVisitor);
 
         Objects.requireNonNull(methodName, "Method name cannot be null");
@@ -46,11 +51,11 @@ public class MethodBytecodeModifier extends ClassVisitor {
                                                  String descriptor,
                                                  byte[] bytecode,
                                                  Instructions instructions,
-                                                 BiFunction<MethodVisitor, Instructions, MethodVisitor> methodVisitorProvider) {
+                                                 ModifyingMethodVisitorProvider methodVisitorProvider) {
         ClassReader classReader = new ClassReader(bytecode);
         ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-        MethodBytecodeModifier modifier =
-                new MethodBytecodeModifier(methodName, descriptor, instructions, classWriter, methodVisitorProvider);
+        InstructionsModifier modifier =
+                new InstructionsModifier(methodName, descriptor, instructions, classWriter, methodVisitorProvider);
 
         classReader.accept(modifier, 0);
         return classWriter.toByteArray();
@@ -59,7 +64,7 @@ public class MethodBytecodeModifier extends ClassVisitor {
     @Override
     public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
         MethodVisitor methodVisitor = classVisitor.visitMethod(access, name, descriptor, signature, exceptions);
-        if (methodIsForModification(name, descriptor, methodVisitor)) { // TODO test
+        if (methodIsForModification(name, descriptor, methodVisitor)) {
             return methodVisitorProvider.apply(methodVisitor, instructions);
         } else {
             return methodVisitor;
@@ -67,7 +72,9 @@ public class MethodBytecodeModifier extends ClassVisitor {
     }
 
     private boolean methodIsForModification(String name, String descriptor, MethodVisitor methodVisitor) {
-        return methodVisitor != null && methodName.equals(name) && (this.descriptor == null || this.descriptor.equals(descriptor));
+        return methodVisitor != null
+                && methodName.equals(name)
+                && (this.descriptor == null || this.descriptor.equals(descriptor));
     }
 
 }
