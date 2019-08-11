@@ -64,13 +64,13 @@ class InstructionsExtractorTest {
     void setUp() {
         MockitoAnnotations.initMocks(this);
         when(classReaderProvider.apply(TEST_BYTES)).thenReturn(classReader);
-        when(extractingMethodVisitorProvider.apply(getTestCharacteristic())).thenReturn(linearExtractingMethodVisitor);
+        when(extractingMethodVisitorProvider.apply(null, getTestCharacteristic())).thenReturn(linearExtractingMethodVisitor);
     }
 
     @Test
     void shouldReturnExtractingMethodVisitorWhenMethodNameAndDescriptorMatch() {
         InstructionsExtractor instructionsExtractor =
-                new InstructionsExtractor(TEST_METHOD_NAME, null, classReaderProvider, extractingMethodVisitorProvider);
+                new InstructionsExtractor(TEST_METHOD_NAME, null, null, v -> v, extractingMethodVisitorProvider, classReaderProvider);
 
         MethodVisitor result =
                 instructionsExtractor.visitMethod(ACCESS_FLAG, TEST_METHOD_NAME, DESCRIPTOR, null, EXCEPTIONS);
@@ -81,7 +81,7 @@ class InstructionsExtractorTest {
     @Test
     void shouldReturnDefaultMethodVisitorWhenMethodNameDoesNotMatch() {
         InstructionsExtractor instructionsExtractor =
-                new InstructionsExtractor(TEST_METHOD_NAME, DESCRIPTOR, classReaderProvider, extractingMethodVisitorProvider);
+                new InstructionsExtractor(TEST_METHOD_NAME, DESCRIPTOR, null, v -> v, extractingMethodVisitorProvider, classReaderProvider);
 
         MethodVisitor result =
                 instructionsExtractor.visitMethod(ACCESS_FLAG, SOME_OTHER_METHOD_NAME, DESCRIPTOR, null, EXCEPTIONS);
@@ -92,7 +92,7 @@ class InstructionsExtractorTest {
     @Test
     void shouldReturnDefaultMethodVisitorWhenDescriptorDoesNotMatch() {
         InstructionsExtractor instructionsExtractor =
-                new InstructionsExtractor(TEST_METHOD_NAME, DESCRIPTOR, classReaderProvider, extractingMethodVisitorProvider);
+                new InstructionsExtractor(TEST_METHOD_NAME, DESCRIPTOR, null, v -> v, extractingMethodVisitorProvider, classReaderProvider);
 
         MethodVisitor result =
                 instructionsExtractor.visitMethod(ACCESS_FLAG, TEST_METHOD_NAME, SOME_OTHER_DESCRIPTOR, null, EXCEPTIONS);

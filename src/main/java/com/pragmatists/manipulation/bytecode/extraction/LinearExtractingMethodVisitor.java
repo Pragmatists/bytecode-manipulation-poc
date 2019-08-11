@@ -5,6 +5,7 @@ import com.pragmatists.manipulation.bytecode.characteristics.MethodCharacteristi
 import com.pragmatists.manipulation.config.Config;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
 import static com.pragmatists.manipulation.type.Types.correspondingReturnBytecode;
@@ -22,17 +23,17 @@ class LinearExtractingMethodVisitor extends ExtractingMethodVisitor {
 
     private boolean pastReturn = false;
 
-    private LinearExtractingMethodVisitor(MethodCharacteristic methodCharacteristic, int returnOpcode) {
-        super(Config.ASM_VERSION);
+    private LinearExtractingMethodVisitor(MethodCharacteristic methodCharacteristic, int returnOpcode, MethodVisitor methodVisitor) {
+        super(Config.ASM_VERSION, methodVisitor);
         this.returnOpcode = returnOpcode;
         instructions.setMethodCharacteristic(methodCharacteristic);
     }
 
-    static LinearExtractingMethodVisitor of(MethodCharacteristic methodCharacteristic) {
+    static LinearExtractingMethodVisitor of(MethodVisitor methodVisitor, MethodCharacteristic methodCharacteristic) {
         String descriptor = methodCharacteristic.getDescriptor();
         Type returnType = Type.getReturnType(descriptor);
         int returnOpcode = correspondingReturnBytecode(returnType);
-        return new LinearExtractingMethodVisitor(methodCharacteristic, returnOpcode);
+        return new LinearExtractingMethodVisitor(methodCharacteristic, returnOpcode, methodVisitor);
     }
 
     @Override
@@ -48,6 +49,7 @@ class LinearExtractingMethodVisitor extends ExtractingMethodVisitor {
         }
 
         instructions.collectInstruction(mv -> mv.visitInsn(opcode));
+        super.visitInsn(opcode);
     }
 
     @Override
@@ -57,6 +59,7 @@ class LinearExtractingMethodVisitor extends ExtractingMethodVisitor {
         }
 
         instructions.collectInstruction(mv -> mv.visitIntInsn(opcode, operand));
+        super.visitIntInsn(opcode, operand);
     }
 
     @Override
@@ -66,6 +69,7 @@ class LinearExtractingMethodVisitor extends ExtractingMethodVisitor {
         }
 
         instructions.collectInstruction(mv -> mv.visitVarInsn(opcode, var));
+        super.visitVarInsn(opcode, var);
     }
 
     @Override
@@ -75,6 +79,7 @@ class LinearExtractingMethodVisitor extends ExtractingMethodVisitor {
         }
 
         instructions.collectInstruction(mv -> mv.visitTypeInsn(opcode, type));
+        super.visitTypeInsn(opcode, type);
     }
 
     @Override
@@ -84,6 +89,7 @@ class LinearExtractingMethodVisitor extends ExtractingMethodVisitor {
         }
 
         instructions.collectInstruction(mv -> mv.visitFieldInsn(opcode, owner, name, descriptor));
+        super.visitFieldInsn(opcode, owner, name, descriptor);
     }
 
     @SuppressWarnings("deprecation")
@@ -94,11 +100,17 @@ class LinearExtractingMethodVisitor extends ExtractingMethodVisitor {
         }
 
         instructions.collectInstruction(mv -> mv.visitMethodInsn(opcode, owner, name, descriptor));
+        super.visitMethodInsn(opcode, owner, name, descriptor);
     }
 
     @Override
     public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
+        if (pastReturn) {
+            return;
+        }
+
         instructions.collectInstruction(mv -> mv.visitMethodInsn(opcode, owner, name, descriptor, isInterface));
+        super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
     }
 
     @Override
@@ -108,6 +120,7 @@ class LinearExtractingMethodVisitor extends ExtractingMethodVisitor {
         }
 
         instructions.collectInstruction(mv -> mv.visitInvokeDynamicInsn(name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments));
+        super.visitInvokeDynamicInsn(name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments);
     }
 
     @Override
@@ -117,6 +130,7 @@ class LinearExtractingMethodVisitor extends ExtractingMethodVisitor {
         }
 
         instructions.collectInstruction(mv -> mv.visitJumpInsn(opcode, label));
+        super.visitJumpInsn(opcode, label);
     }
 
     @Override
@@ -126,6 +140,7 @@ class LinearExtractingMethodVisitor extends ExtractingMethodVisitor {
         }
 
         instructions.collectInstruction(mv -> mv.visitLabel(label));
+        super.visitLabel(label);
     }
 
     @Override
@@ -135,6 +150,7 @@ class LinearExtractingMethodVisitor extends ExtractingMethodVisitor {
         }
 
         instructions.collectInstruction(mv -> mv.visitLdcInsn(value));
+        super.visitLdcInsn(value);
     }
 
     @Override
@@ -144,6 +160,7 @@ class LinearExtractingMethodVisitor extends ExtractingMethodVisitor {
         }
 
         instructions.collectInstruction(mv -> mv.visitIincInsn(var, increment));
+        super.visitIincInsn(var, increment);
     }
 
     @Override
@@ -153,6 +170,7 @@ class LinearExtractingMethodVisitor extends ExtractingMethodVisitor {
         }
 
         instructions.collectInstruction(mv -> mv.visitTableSwitchInsn(min, max, dflt, labels));
+        super.visitTableSwitchInsn(min, max, dflt, labels);
     }
 
     @Override
@@ -162,6 +180,7 @@ class LinearExtractingMethodVisitor extends ExtractingMethodVisitor {
         }
 
         instructions.collectInstruction(mv -> mv.visitLookupSwitchInsn(dflt, keys, labels));
+        super.visitLookupSwitchInsn(dflt, keys, labels);
     }
 
     @Override
@@ -171,6 +190,7 @@ class LinearExtractingMethodVisitor extends ExtractingMethodVisitor {
         }
 
         instructions.collectInstruction(mv -> mv.visitMultiANewArrayInsn(descriptor, numDimensions));
+        super.visitMultiANewArrayInsn(descriptor, numDimensions);
     }
 
     @Override
@@ -180,6 +200,7 @@ class LinearExtractingMethodVisitor extends ExtractingMethodVisitor {
         }
 
         instructions.collectInstruction(mv -> mv.visitTryCatchBlock(start, end, handler, type));
+        super.visitTryCatchBlock(start, end, handler, type);
     }
 
     @Override
@@ -189,6 +210,7 @@ class LinearExtractingMethodVisitor extends ExtractingMethodVisitor {
         }
 
         instructions.collectInstruction(mv -> mv.visitLocalVariable(name, descriptor, signature, start, end, index));
+        super.visitLocalVariable(name, descriptor, signature, start, end, index);
     }
 
     @Override
@@ -198,6 +220,7 @@ class LinearExtractingMethodVisitor extends ExtractingMethodVisitor {
         }
 
         instructions.collectInstruction(mv -> mv.visitLineNumber(line, start));
+        super.visitLineNumber(line, start);
     }
 
     @Override
@@ -207,5 +230,6 @@ class LinearExtractingMethodVisitor extends ExtractingMethodVisitor {
         }
 
         instructions.collectInstruction(mv -> mv.visitMaxs(maxStack, maxLocals));
+        super.visitMaxs(maxStack, maxLocals);
     }
 }

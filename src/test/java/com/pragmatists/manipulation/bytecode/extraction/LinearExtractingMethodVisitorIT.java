@@ -7,11 +7,13 @@ import com.pragmatists.manipulation.bytecode.generation.MethodGenerator;
 import com.pragmatists.manipulation.loaders.ClassSubstitutor;
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.util.TraceClassVisitor;
 import test.control.ForTest;
 import test.control.IfTest;
 import test.control.InvokeStaticTest;
 import test.control.TryCatchTest;
 
+import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -92,7 +94,9 @@ class LinearExtractingMethodVisitorIT {
 
     private Instructions getInstructions(Class c, String methodName) {
         byte[] testClassBytecode = getBytecode(c);
-        InstructionsExtractor methodExtractor = new InstructionsExtractor(methodName);
+
+        InstructionsExtractor methodExtractor =
+                new InstructionsExtractor(methodName, null, new TraceClassVisitor(new PrintWriter(System.out)));
         return methodExtractor.extract(testClassBytecode).get();
     }
 

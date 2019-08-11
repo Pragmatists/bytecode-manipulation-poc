@@ -21,10 +21,10 @@ public class BytecodeManipulationDemo {
 
         byte[] mainBytecode = getBytecodeFromResources("RunThis.class");
         byte[] stringProviderBytecode = getBytecodeFromResources("StringProvider.class");
-        byte[] timeProviderBytecode = getBytecodeFromResources("TimePrinter.class");
+        byte[] timePrinterBytecode = getBytecodeFromResources("TimePrinter.class");
 
         InstructionsExtractor nowExtractor = new InstructionsExtractor("now");
-        Instructions extractedCode = nowExtractor.extract(timeProviderBytecode)
+        Instructions extractedCode = nowExtractor.extract(timePrinterBytecode)
                 .orElse(new Instructions());
 
         Instructions instructions = new Instructions();
@@ -44,6 +44,8 @@ public class BytecodeManipulationDemo {
 
         ClassSubstitutor classSubstitutor = new ClassSubstitutor(classesToTargetBytecode);
         Class<?> c = classSubstitutor.loadClass(mainFQClassName);
+
+        System.out.println();
 
         Method main = c.getMethod("main", String[].class);
         main.invoke(null, new Object[]{new String[0]});

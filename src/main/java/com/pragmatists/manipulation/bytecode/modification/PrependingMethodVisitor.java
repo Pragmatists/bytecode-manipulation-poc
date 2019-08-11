@@ -21,7 +21,7 @@ public class PrependingMethodVisitor extends ModifyingMethodVisitor {
 
     @Override
     public void visitCode() {
-        originalMethodVisitor.visitCode();
+        super.visitCode();
         instructions.appendMethodInstructions(originalMethodVisitor);
     }
 }
