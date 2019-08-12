@@ -8,7 +8,7 @@ import static org.objectweb.asm.Opcodes.IRETURN;
 import static org.objectweb.asm.Opcodes.RETURN;
 
 /**
- * AppendingMethodVisitor injects instructions just before the methods return instruction.
+ * AppendingMethodVisitor injects instructions just before each of the method's return instructions.
  */
 public class AppendingMethodVisitor extends ModifyingMethodVisitor {
     private final MethodVisitor originalMethodVisitor;
