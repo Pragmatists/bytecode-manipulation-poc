@@ -45,8 +45,6 @@ public class BytecodeManipulationDemo {
         ClassSubstitutor classSubstitutor = new ClassSubstitutor(classesToTargetBytecode);
         Class<?> c = classSubstitutor.loadClass(mainFQClassName);
 
-        System.out.println();
-
         Method main = c.getMethod("main", String[].class);
         main.invoke(null, new Object[]{new String[0]});
     }
