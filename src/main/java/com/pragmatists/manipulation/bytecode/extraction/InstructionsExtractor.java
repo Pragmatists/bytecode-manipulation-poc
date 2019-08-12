@@ -86,7 +86,8 @@ public class InstructionsExtractor extends ClassVisitor {
 
     /**
      * @param classBytecode bytecode of a class
-     * @return instructions collected during last visitation of the bytecode
+     * @return instructions collected during last visitation of the bytecode; will return empty, if method matching
+     * given methodName and descriptor wasn't found
      */
     public Optional<Instructions> extract(byte[] classBytecode) {
         ClassReader classReader = classReaderProvider.apply(classBytecode);

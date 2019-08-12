@@ -26,11 +26,11 @@ public class ClassBytecodeGenerator {
     public byte[] generate(ClassWriter classWriter) {
         PrintWriter printWriter = new PrintWriter(System.out);
         ClassVisitor tracingVisitor = new TraceClassVisitor(classWriter, printWriter);
-        ClassVisitor classVisitor = new CheckClassAdapter(tracingVisitor, false);
+        ClassVisitor checkClassAdapter = new CheckClassAdapter(tracingVisitor, false);
 
-        classVisitor.visit(characteristic.getJavaVersion(), characteristic.getAccessFlag(), characteristic.getInternalName(), characteristic.getSignature(), characteristic.getSuperInternalName(), characteristic.getInterfaces());
-        methodGenerators.forEach(methodGenerator -> methodGenerator.accept(classVisitor));
-        classVisitor.visitEnd();
+        checkClassAdapter.visit(characteristic.getJavaVersion(), characteristic.getAccessFlag(), characteristic.getInternalName(), characteristic.getSignature(), characteristic.getSuperInternalName(), characteristic.getInterfaces());
+        methodGenerators.forEach(methodGenerator -> methodGenerator.accept(checkClassAdapter));
+        checkClassAdapter.visitEnd();
 
         return classWriter.toByteArray();
     }

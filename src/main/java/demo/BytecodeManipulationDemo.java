@@ -16,36 +16,36 @@ import static org.objectweb.asm.Opcodes.POP;
 
 public class BytecodeManipulationDemo {
     public static void main(String[] args) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, ClassNotFoundException {
-        String mainFQClassName = "demo.RunThis";
-        String stringProviderFQClassName = "demo.StringProvider";
+        String mainClassName = "demo.RunThis";
+        String stringProviderClassName = "demo.StringProvider";
 
         byte[] mainBytecode = getBytecodeFromResources("RunThis.class");
         byte[] stringProviderBytecode = getBytecodeFromResources("StringProvider.class");
         byte[] timePrinterBytecode = getBytecodeFromResources("TimePrinter.class");
 
-        InstructionsExtractor nowExtractor = new InstructionsExtractor("now");
-        Instructions extractedCode = nowExtractor.extract(timePrinterBytecode)
-                .orElse(new Instructions());
+        InstructionsExtractor nowExtractor = new InstructionsExtractor("now", methodDescriptor(null));
+        Instructions instructionsToPrintCurrentDateTime = nowExtractor.extract(timePrinterBytecode)
+                .orElseThrow(BytecodeManipulationDemo::failedToFindNowMethod);
 
         Instructions instructions = new Instructions();
         instructions.collectInstruction(mv -> {
             mv.visitInsn(POP);
-            extractedCode.appendMethodInstructions(mv);
-            mv.visitLdcInsn("Nobody expected this!");
+            mv.visitLdcInsn("This will be the String returned by StringProvider#get() instead");
+            instructionsToPrintCurrentDateTime.appendMethodInstructions(mv);
         });
 
         byte[] modifiedStringProviderBytecode = InstructionsModifier.modifyMethodInClassfile(
                 "get", methodDescriptor(String.class), stringProviderBytecode, instructions, AppendingMethodVisitor::new);
 
         Map<String, byte[]> classesToTargetBytecode = Map.of(
-                mainFQClassName, mainBytecode,
-                stringProviderFQClassName, modifiedStringProviderBytecode
+                mainClassName, mainBytecode,
+                stringProviderClassName, modifiedStringProviderBytecode
         );
 
         ClassSubstitutor classSubstitutor = new ClassSubstitutor(classesToTargetBytecode);
-        Class<?> c = classSubstitutor.loadClass(mainFQClassName);
+        Class<?> mainClass = classSubstitutor.loadClass(mainClassName);
 
-        Method main = c.getMethod("main", String[].class);
+        Method main = mainClass.getMethod("main", String[].class);
         main.invoke(null, new Object[]{new String[0]});
     }
 
@@ -54,7 +54,11 @@ public class BytecodeManipulationDemo {
             ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
             return systemClassLoader.getResourceAsStream(classFilePath).readAllBytes();
         } catch (IOException | NullPointerException e) {
-            throw new RuntimeException(String.format("Couldn't load class file from path %s", classFilePath), e);
+            throw new RuntimeException(String.format("Couldn't load class file from resources: %s", classFilePath), e);
         }
+    }
+
+    private static IllegalStateException failedToFindNowMethod() {
+        return new IllegalStateException("The method `TimePrinter#now()` should be in place...");
     }
 }

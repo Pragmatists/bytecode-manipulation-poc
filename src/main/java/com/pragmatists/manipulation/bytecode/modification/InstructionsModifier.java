@@ -47,12 +47,20 @@ public class InstructionsModifier extends ClassVisitor {
         this.descriptor = descriptor;
     }
 
+    /**
+     * @param methodName            name of the method to be modified
+     * @param descriptor            descriptor of the modified method
+     * @param originalBytecode      bytecode of the original class having the method to be modified
+     * @param instructions          instructions to be used by the provided ModifyingMethodVisitor
+     * @param methodVisitorProvider provider of a chosen {@link ModifyingMethodVisitor}
+     * @return class bytecode modified using the provided ModifyingMethodVisitor
+     */
     public static byte[] modifyMethodInClassfile(String methodName,
                                                  String descriptor,
-                                                 byte[] bytecode,
+                                                 byte[] originalBytecode,
                                                  Instructions instructions,
                                                  ModifyingMethodVisitorProvider methodVisitorProvider) {
-        ClassReader classReader = new ClassReader(bytecode);
+        ClassReader classReader = new ClassReader(originalBytecode);
         ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
         InstructionsModifier modifier =
                 new InstructionsModifier(methodName, descriptor, instructions, classWriter, methodVisitorProvider);

@@ -13,14 +13,10 @@ import org.objectweb.asm.MethodVisitor;
  *             instructions.collectInstruction(mv -> mv.visitInsn(opcode));
  *      }
  * }</pre>
- * This way the instructions can be later visited by a different MethodVisitor, e.g. a one called by a
+ * This way the instructions can be later visited by a different MethodVisitor, e.g. one called by a
  * {@link org.objectweb.asm.ClassWriter ClassWriter}.
  */
 public abstract class ExtractingMethodVisitor extends MethodVisitor {
-    public ExtractingMethodVisitor(int api) {
-        super(api);
-    }
-
     public ExtractingMethodVisitor(int api, MethodVisitor methodVisitor) {
         super(api, methodVisitor);
     }

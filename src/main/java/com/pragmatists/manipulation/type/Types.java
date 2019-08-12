@@ -37,7 +37,7 @@ public class Types {
                 return DRETURN;
 
             case Type.ARRAY:
-                return ARETURN; // see above
+                return ARETURN; // see comment above
             case Type.OBJECT:
                 return ARETURN;
 
@@ -55,6 +55,11 @@ public class Types {
         return name.replace('.', '/');
     }
 
+    /**
+     * @param returnType the return type, {@code null} for {@code void}
+     * @param paramTypes the parameter types
+     * @return the descriptor of a method with given parameter and return types
+     */
     public static String methodDescriptor(Class returnType, Class... paramTypes) {
         String paramTypeDescriptors = Arrays.stream(paramTypes)
                 .map(Type::getDescriptor)

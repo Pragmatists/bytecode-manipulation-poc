@@ -13,15 +13,15 @@ import java.util.Objects;
 @EqualsAndHashCode
 public class Instructions {
     private MethodCharacteristic methodCharacteristic;
-    private final List<InstructionsAppender> instructionAdditions;
+    private final List<AppendInstruction> instructionAdditions;
 
     public Instructions() {
         this.instructionAdditions = new ArrayList<>();
     }
 
-    public void collectInstruction(InstructionsAppender instructionAddition) {
-        Objects.requireNonNull(instructionAddition);
-        instructionAdditions.add(instructionAddition);
+    public void collectInstruction(AppendInstruction appendInstruction) {
+        Objects.requireNonNull(appendInstruction);
+        instructionAdditions.add(appendInstruction);
     }
 
     public void appendMethodInstructions(MethodVisitor methodVisitor) {

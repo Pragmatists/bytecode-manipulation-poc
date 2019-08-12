@@ -1,7 +1,7 @@
 package com.pragmatists.manipulation.bytecode.generation;
 
+import com.pragmatists.manipulation.bytecode.AppendInstruction;
 import com.pragmatists.manipulation.bytecode.Instructions;
-import com.pragmatists.manipulation.bytecode.InstructionsAppender;
 import com.pragmatists.manipulation.bytecode.characteristics.MethodCharacteristic;
 import com.pragmatists.manipulation.type.Types;
 import lombok.Builder;
@@ -28,12 +28,12 @@ public class MethodGenerator {
     private static final String PRINTLN_METHOD_NAME = "println";
 
     private final MethodCharacteristic mc;
-    private final InstructionsAppender instructionsAppender;
+    private final AppendInstruction appendInstruction;
 
     @Builder
-    private MethodGenerator(MethodCharacteristic methodCharacteristic, InstructionsAppender methodBodyWriter) {
+    private MethodGenerator(MethodCharacteristic methodCharacteristic, AppendInstruction methodBodyWriter) {
         this.mc = methodCharacteristic;
-        this.instructionsAppender = methodBodyWriter;
+        this.appendInstruction = methodBodyWriter;
     }
 
     public static MethodGenerator from(Instructions instructions) {
@@ -49,7 +49,7 @@ public class MethodGenerator {
 
         methodVisitor.visitCode();
 
-        instructionsAppender.accept(methodVisitor);
+        appendInstruction.accept(methodVisitor);
 
         methodVisitor.visitInsn(Types.correspondingReturnBytecode(mc.getReturnType()));
         methodVisitor.visitMaxs(AUTO_CALCULATE, AUTO_CALCULATE);

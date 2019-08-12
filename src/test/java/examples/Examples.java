@@ -44,9 +44,9 @@ public class Examples {
     void simpleParameterHijacking() throws InvocationTargetException, IllegalAccessException, InstantiationException, NoSuchMethodException, ClassNotFoundException {
         var instructions = new Instructions();
         instructions.collectInstruction(mv -> {
-            mv.visitLdcInsn(-1L);           // pushing -1L onto the stack
+            mv.visitLdcInsn(-1L);         // pushing -1L onto the stack
             mv.visitVarInsn(LSTORE, 1);     // storing into first argument's slots
-            mv.visitLdcInsn(0L);            // pushing 0l onto the stack
+            mv.visitLdcInsn(0L);          // pushing 0l onto the stack
             mv.visitVarInsn(LSTORE, 3);     // storing into second argument's slots (longs take two slots)
         });
 
@@ -64,7 +64,7 @@ public class Examples {
     @Test
     void parameterHijackingWithBytecodeExtraction() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, ClassNotFoundException {
         var timerClassBytecode = getBytecode(DoubleReturner.class);
-        var timerMethodExtractor = new InstructionsExtractor("getValue"); // skipping descriptor, method unique
+        var timerMethodExtractor = new InstructionsExtractor("getValue"); // skipping descriptor, method name unique
 
         var getTimeInstructions = timerMethodExtractor.extract(timerClassBytecode)
                 .orElseThrow(FailedExampleException::new);
@@ -73,7 +73,7 @@ public class Examples {
             getTimeInstructions.appendMethodInstructions(mv);  // adding instructions taken from DoubleReturner#returnValue()
             mv.visitMethodInsn(INVOKEVIRTUAL, internalName(Double.class), "intValue", Types.methodDescriptor(int.class), false);
             mv.visitInsn(I2L);                                 // Double#intValue() returned an int, converting it to long
-            mv.visitVarInsn(LSTORE, 1);                        // popping stack into first argument's slot
+            mv.visitVarInsn(LSTORE, 1);                   // popping stack into first argument's slot
         });
 
         var doubleValue = new DoubleReturner().getValue().intValue();
